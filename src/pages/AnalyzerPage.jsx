@@ -4,7 +4,7 @@ import Footer from '../components/Footer';
 import { addHistoryEntry } from '../services/historyService';
 import './AnalyzerPage.css';
 
-const API_BASE = 'https://medintel-api.onrender.com/api/medicines';
+const API_BASE = `${import.meta.env.VITE_API_URL}/api/medicines`;
 
 import { useChat } from '../context/ChatContext';
 

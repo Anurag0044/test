@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import Footer from '../components/Footer'
 import './ComparisonPage.css'
 
-const API_BASE = 'https://medintel-api.onrender.com/api/medicines';
+const API_BASE = `${import.meta.env.VITE_API_URL}/api/medicines`;
 
 export default function ComparisonPage() {
   const [searchTerm, setSearchTerm] = useState('')

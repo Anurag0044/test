@@ -4,7 +4,7 @@ import ThemeToggle from '../components/ThemeToggle'
 import Footer from '../components/Footer'
 import './HomePage.css'
 
-const API_BASE = 'https://medintel-api.onrender.com/api/medicines/alternatives';
+const API_BASE = `${import.meta.env.VITE_API_URL}/api/medicines/alternatives`;
 
 /* ── Typewriter hook ── */
 function useTypewriter(fullText, {
