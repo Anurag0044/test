@@ -1,12 +1,91 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ThemeToggle from '../components/ThemeToggle'
 import Footer from '../components/Footer'
 import './HomePage.css'
 
+/* ── Typewriter hook ── */
+function useTypewriter(fullText, {
+  typeSpeed = 60,
+  deleteSpeed = 35,
+  pauseBeforeDelete = 2200,
+  pauseBeforeType = 600,
+} = {}) {
+  const [display, setDisplay] = useState('')
+  const [phase, setPhase] = useState('typing') // typing | pausing | deleting | waiting
+
+  useEffect(() => {
+    let timer
+
+    if (phase === 'typing') {
+      if (display.length < fullText.length) {
+        timer = setTimeout(() => {
+          setDisplay(fullText.slice(0, display.length + 1))
+        }, typeSpeed)
+      } else {
+        timer = setTimeout(() => setPhase('pausing'), pauseBeforeDelete)
+      }
+    } else if (phase === 'pausing') {
+      setPhase('deleting')
+    } else if (phase === 'deleting') {
+      if (display.length > 0) {
+        timer = setTimeout(() => {
+          setDisplay(display.slice(0, -1))
+        }, deleteSpeed)
+      } else {
+        timer = setTimeout(() => setPhase('waiting'), pauseBeforeType)
+      }
+    } else if (phase === 'waiting') {
+      setPhase('typing')
+    }
+
+    return () => clearTimeout(timer)
+  }, [display, phase, fullText, typeSpeed, deleteSpeed, pauseBeforeDelete, pauseBeforeType])
+
+  const isTyping = phase === 'typing' || phase === 'deleting'
+  return { display, isTyping }
+}
+
+/* ── Ripple on click ── */
+function createRipple(e) {
+  const btn = e.currentTarget
+  const circle = document.createElement('span')
+  const diameter = Math.max(btn.clientWidth, btn.clientHeight)
+  const radius = diameter / 2
+  const rect = btn.getBoundingClientRect()
+
+  circle.style.width = circle.style.height = `${diameter}px`
+  circle.style.left = `${e.clientX - rect.left - radius}px`
+  circle.style.top = `${e.clientY - rect.top - radius}px`
+  circle.classList.add('btn-ripple')
+
+  // Remove any previous ripple
+  const prev = btn.querySelector('.btn-ripple')
+  if (prev) prev.remove()
+
+  btn.appendChild(circle)
+  // Cleanup after animation
+  setTimeout(() => circle.remove(), 700)
+}
+
 export default function HomePage() {
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [searchFocused, setSearchFocused] = useState(false)
+
+  const fullHeadline = 'Find Affordable Medicine Alternatives Instantly'
+  const { display, isTyping } = useTypewriter(fullHeadline)
+
+  /* Split displayed text to highlight "Alternatives Instantly" portion */
+  const highlightStart = 'Find Affordable Medicine '.length
+  const beforeHighlight = display.slice(0, Math.min(display.length, highlightStart))
+  const highlighted = display.length > highlightStart ? display.slice(highlightStart) : ''
+
+  /* Ripple-enabled click handler */
+  const handleBtnClick = useCallback((e, path) => {
+    createRipple(e)
+    setTimeout(() => navigate(path), 200)
+  }, [navigate])
 
   return (
     <div className="home">
@@ -26,7 +105,10 @@ export default function HomePage() {
             <button className="btn btn-outline btn-sm" onClick={() => navigate('/login')}>
               Sign In
             </button>
-            <button className="btn btn-primary btn-sm" onClick={() => navigate('/login')}>
+            <button
+              className="btn btn-primary btn-sm btn-glow"
+              onClick={(e) => handleBtnClick(e, '/login')}
+            >
               Get Started
             </button>
           </div>
@@ -69,21 +151,48 @@ export default function HomePage() {
 
       {/* ───── Hero Section ───── */}
       <section className="hero">
+        {/* Radial AI glow behind content */}
+        <div className="hero-glow" aria-hidden="true" />
+        <div className="hero-glow-secondary" aria-hidden="true" />
+
         <div className="hero-content">
           <div className="hero-badge">
             <span className="material-icons-outlined icon-sm">verified</span>
             MedIntel Analysis — Clinical Grade AI
           </div>
-          <h1 className="hero-title">
-            Find Affordable Medicine<br />
-            <span className="hero-title-accent">Alternatives Instantly</span>
+
+          {/* Typewriter headline */}
+          <h1 className="hero-title" id="hero-headline" aria-label={fullHeadline}>
+            {beforeHighlight}
+            {highlighted && (
+              <span className="hero-title-accent">{highlighted}</span>
+            )}
+            <span className={`typewriter-cursor ${isTyping ? 'typing' : ''}`} aria-hidden="true">|</span>
           </h1>
+
+          {/* ── Search Bar ── */}
+          <div className={`hero-search ${searchFocused ? 'hero-search-focused' : ''}`}>
+            <span className="material-icons-outlined hero-search-icon">search</span>
+            <input
+              type="text"
+              className="hero-search-input"
+              id="hero-search-input"
+              placeholder='Search medicine (e.g., Crocin, Dolo 650...)'
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
+            />
+          </div>
+
           <p className="hero-description">
             Our AI-powered analysis scans thousands of clinical databases to find identical
             compositions at a fraction of the cost. Same efficacy, smarter spending.
           </p>
           <div className="hero-actions">
-            <button className="btn btn-primary btn-lg" onClick={() => navigate('/login')}>
+            <button
+              className="btn btn-primary btn-lg btn-glow"
+              id="btn-start-analyzing"
+              onClick={(e) => handleBtnClick(e, '/login')}
+            >
               <span className="material-icons-outlined">search</span>
               Start Analyzing
             </button>
@@ -127,7 +236,7 @@ export default function HomePage() {
               <div className="demo-source-header">
                 <div>
                   <h3 className="title-lg">Crocin 650</h3>
-                  <p className="body-md text-muted">Pain Reliever & Fever Reducer</p>
+                  <p className="body-md text-muted">Pain Reliever &amp; Fever Reducer</p>
                 </div>
                 <div className="demo-mrp">
                   <span className="label-md text-muted">MRP</span>
@@ -253,7 +362,11 @@ export default function HomePage() {
           <p className="body-lg cta-desc">
             Join over 50,000 users who are saving an average of 40% on their monthly pharmacy bills.
           </p>
-          <button className="btn btn-primary btn-lg" onClick={() => navigate('/login')}>
+          <button
+            className="btn btn-primary btn-lg btn-glow"
+            id="btn-get-started-cta"
+            onClick={(e) => handleBtnClick(e, '/login')}
+          >
             Get Started — It's Free
           </button>
         </div>

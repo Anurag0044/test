@@ -1,19 +1,44 @@
+/* ============================================================
+   Sidebar — Premium SaaS Dashboard
+   ============================================================ */
+
 .sidebar {
   width: var(--sidebar-width);
   height: 100vh;
   position: fixed;
   top: 0;
   left: 0;
-  background-color: var(--tertiary);
+  background: linear-gradient(180deg, #4a5568 0%, #3d4a5e 40%, #2d3748 100%);
   color: var(--inverse-on-surface);
   display: flex;
   flex-direction: column;
   z-index: 100;
   overflow-y: auto;
   overflow-x: hidden;
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.4s ease;
 }
 
+/* Subtle internal glow */
+.sidebar-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 200px;
+  background: radial-gradient(
+    ellipse at 30% 0%,
+    rgba(16, 185, 129, 0.08) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Header ── */
 .sidebar-header {
+  position: relative;
+  z-index: 1;
   padding: var(--space-6) var(--space-5);
 }
 
@@ -22,7 +47,7 @@
   align-items: center;
   gap: var(--space-3);
   cursor: pointer;
-  transition: opacity var(--transition-fast);
+  transition: opacity 0.3s ease;
 }
 
 .sidebar-logo:hover {
@@ -33,7 +58,7 @@
   width: 40px;
   height: 40px;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--primary), var(--primary-container));
+  background: linear-gradient(135deg, #006c49, #10b981);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -41,6 +66,7 @@
   font-weight: var(--font-weight-extrabold);
   color: white;
   flex-shrink: 0;
+  box-shadow: 0 2px 12px rgba(16, 185, 129, 0.25);
 }
 
 .sidebar-brand {
@@ -52,13 +78,16 @@
 
 .sidebar-subtitle {
   font-size: 0.6875rem;
-  color: var(--tertiary-container);
+  color: rgba(255, 255, 255, 0.45);
   font-weight: var(--font-weight-medium);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 
+/* ── Navigation ── */
 .sidebar-nav {
+  position: relative;
+  z-index: 1;
   flex: 1;
   padding: var(--space-2) var(--space-3);
 }
@@ -69,49 +98,138 @@
   gap: 2px;
 }
 
+/* ── Nav Item ── */
 .nav-item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
-  color: var(--tertiary-container);
+  color: rgba(255, 255, 255, 0.55);
   font-size: 0.875rem;
   font-weight: var(--font-weight-medium);
-  transition: all var(--transition-fast);
+  transition: all 0.3s ease;
   text-decoration: none;
   background: none;
   border: none;
   width: 100%;
   cursor: pointer;
   text-align: left;
+  overflow: hidden;
+}
+
+/* Scale press (click animation) */
+.nav-item:active {
+  transform: scale(0.96);
+  transition: transform 0.1s ease-in;
 }
 
 .nav-item:hover {
-  background-color: var(--on-tertiary-fixed-variant);
+  background: rgba(255, 255, 255, 0.08);
   color: white;
 }
 
+/* Icon hover lift */
+.nav-item:hover .nav-icon {
+  transform: translateY(-1px);
+}
+
+/* ── Active indicator bar ── */
+.nav-active-bar {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%) scaleY(0);
+  width: 3px;
+  height: 20px;
+  border-radius: 0 var(--radius-full) var(--radius-full) 0;
+  background: linear-gradient(180deg, #10b981, #22c55e);
+  transition: transform 0.3s ease;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+/* ── Active state ── */
 .nav-item-active {
-  background-color: var(--on-tertiary-fixed-variant);
+  background: rgba(16, 185, 129, 0.12);
   color: white;
   font-weight: var(--font-weight-semibold);
 }
 
+.nav-item-active .nav-active-bar {
+  transform: translateY(-50%) scaleY(1);
+}
+
 .nav-item-active .nav-icon {
-  color: var(--primary-container);
+  color: #10b981;
+}
+
+/* Active glow pulse */
+.nav-item-active::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 16px rgba(16, 185, 129, 0.06);
+  pointer-events: none;
+}
+
+/* ── Icon wrapper (for notification dot positioning) ── */
+.nav-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .nav-icon {
   font-size: 20px;
   flex-shrink: 0;
+  transition: transform 0.3s ease, color 0.3s ease;
 }
 
 .nav-label {
   white-space: nowrap;
 }
 
+/* ── Notification dot ── */
+.nav-notif-dot {
+  position: absolute;
+  top: -2px;
+  right: -4px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+  animation: notifPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes notifPulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px rgba(34, 197, 94, 0.5); }
+  50% { opacity: 0.7; box-shadow: 0 0 10px rgba(34, 197, 94, 0.7); }
+}
+
+/* ── Ripple ── */
+.nav-ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.2);
+  transform: scale(0);
+  animation: navRippleExpand 0.55s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes navRippleExpand {
+  0% { transform: scale(0); opacity: 0.5; }
+  100% { transform: scale(3); opacity: 0; }
+}
+
+/* ── Bottom section ── */
 .sidebar-bottom {
+  position: relative;
+  z-index: 1;
   padding: var(--space-3);
   display: flex;
   flex-direction: column;
@@ -119,30 +237,41 @@
 }
 
 .nav-item-logout {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.4);
   font-family: var(--font-family);
 }
 
 .nav-item-logout:hover {
   color: #ff8a80;
-  background-color: rgba(186, 26, 26, 0.15);
+  background-color: rgba(186, 26, 26, 0.12);
 }
 
+.nav-item-logout:hover .nav-icon {
+  transform: translateY(0);
+}
+
+/* ── User card ── */
 .sidebar-user {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-4) var(--space-4);
   margin-top: var(--space-2);
-  background-color: var(--on-tertiary-fixed-variant);
+  background: rgba(255, 255, 255, 0.05);
   border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.3s ease;
+}
+
+.sidebar-user:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .sidebar-avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary), var(--primary-container));
+  background: linear-gradient(135deg, #006c49, #10b981);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -150,6 +279,7 @@
   font-weight: var(--font-weight-bold);
   color: white;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
 }
 
 .sidebar-avatar-img {
@@ -158,7 +288,7 @@
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
-  border: 2px solid var(--primary-container);
+  border: 2px solid rgba(16, 185, 129, 0.3);
 }
 
 .sidebar-user-name {
@@ -170,10 +300,10 @@
 
 .sidebar-user-role {
   font-size: 0.6875rem;
-  color: var(--tertiary-container);
+  color: rgba(255, 255, 255, 0.4);
 }
 
-/* Theme toggle row in sidebar */
+/* ── Theme toggle row ── */
 .sidebar-theme-row {
   display: flex;
   align-items: center;
@@ -181,10 +311,48 @@
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
   margin-bottom: var(--space-2);
-  background-color: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.04);
+  transition: background 0.3s ease;
 }
 
-/* Dark mode sidebar adjustment — slightly deeper */
+.sidebar-theme-row:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* ============================================================
+   Dark Mode
+   ============================================================ */
 [data-theme="dark"] .sidebar {
-  background-color: #0d1117;
+  background: linear-gradient(180deg, #0d1117 0%, #0a0f14 40%, #080c10 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+[data-theme="dark"] .sidebar-glow {
+  background: radial-gradient(
+    ellipse at 30% 0%,
+    rgba(78, 222, 163, 0.05) 0%,
+    transparent 70%
+  );
+}
+
+[data-theme="dark"] .nav-item-active {
+  background: rgba(78, 222, 163, 0.08);
+}
+
+[data-theme="dark"] .nav-item-active .nav-icon {
+  color: #4edea3;
+}
+
+[data-theme="dark"] .nav-active-bar {
+  background: linear-gradient(180deg, #4edea3, #22c55e);
+  box-shadow: 0 0 8px rgba(78, 222, 163, 0.3);
+}
+
+[data-theme="dark"] .sidebar-logo-icon {
+  box-shadow: 0 2px 12px rgba(78, 222, 163, 0.15);
+}
+
+[data-theme="dark"] .nav-notif-dot {
+  background: #4edea3;
+  box-shadow: 0 0 6px rgba(78, 222, 163, 0.4);
 }

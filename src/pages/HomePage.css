@@ -167,13 +167,74 @@
 
 /* ───── Hero ───── */
 .hero {
+  position: relative;
   padding: 160px var(--space-7) var(--space-12);
   text-align: center;
   background: linear-gradient(180deg, var(--surface) 0%, var(--surface-container-low) 100%);
   transition: background 0.4s ease;
+  overflow: hidden;
+}
+
+/* ── Radial AI Glow ── */
+.hero-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -55%);
+  width: 700px;
+  height: 500px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(16, 185, 129, 0.12) 0%,
+    rgba(16, 185, 129, 0.06) 35%,
+    rgba(16, 185, 129, 0.02) 60%,
+    transparent 80%
+  );
+  border-radius: 50%;
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero-glow-secondary {
+  position: absolute;
+  top: 30%;
+  left: 55%;
+  transform: translate(-50%, -50%);
+  width: 400px;
+  height: 300px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 108, 73, 0.08) 0%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  filter: blur(60px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+[data-theme="dark"] .hero-glow {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(78, 222, 163, 0.1) 0%,
+    rgba(78, 222, 163, 0.05) 35%,
+    rgba(78, 222, 163, 0.015) 60%,
+    transparent 80%
+  );
+}
+
+[data-theme="dark"] .hero-glow-secondary {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(78, 222, 163, 0.06) 0%,
+    transparent 70%
+  );
 }
 
 .hero-content {
+  position: relative;
+  z-index: 1;
   max-width: 760px;
   margin: 0 auto;
   animation: fadeIn 0.8s ease-out;
@@ -194,13 +255,15 @@
   transition: background-color 0.4s ease;
 }
 
+/* ── Typewriter Title ── */
 .hero-title {
   font-size: 3.5rem;
   font-weight: var(--font-weight-extrabold);
-  line-height: 1.1;
+  line-height: 1.15;
   letter-spacing: -0.02em;
   color: var(--on-background);
   margin-bottom: var(--space-6);
+  min-height: 4.2em; /* Prevent layout shift during animation */
 }
 
 .hero-title-accent {
@@ -215,6 +278,80 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* Cursor */
+.typewriter-cursor {
+  display: inline-block;
+  font-weight: 300;
+  color: var(--primary);
+  animation: cursorBlink 0.8s step-end infinite;
+  margin-left: 2px;
+  -webkit-text-fill-color: var(--primary);
+}
+
+.typewriter-cursor.typing {
+  animation: none;
+  opacity: 1;
+}
+
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* ── Search Bar ── */
+.hero-search {
+  position: relative;
+  max-width: 520px;
+  margin: 0 auto var(--space-6);
+  display: flex;
+  align-items: center;
+  background-color: var(--surface-container-lowest);
+  border-radius: var(--radius-full);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border: 1.5px solid var(--outline-variant);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease, background-color 0.3s ease;
+  overflow: hidden;
+}
+
+.hero-search-focused {
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.12), 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="dark"] .hero-search-focused {
+  border-color: rgba(78, 222, 163, 0.4);
+  box-shadow: 0 0 0 4px rgba(78, 222, 163, 0.1), 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.hero-search-icon {
+  position: absolute;
+  left: var(--space-4);
+  font-size: 20px;
+  color: var(--outline);
+  pointer-events: none;
+  transition: color 0.3s ease;
+}
+
+.hero-search-focused .hero-search-icon {
+  color: var(--primary);
+}
+
+.hero-search-input {
+  width: 100%;
+  padding: var(--space-3) var(--space-4) var(--space-3) 48px;
+  font-size: 0.9375rem;
+  font-weight: var(--font-weight-medium);
+  color: var(--on-surface);
+  background: transparent;
+  border: none;
+  outline: none;
+}
+
+.hero-search-input::placeholder {
+  color: var(--outline);
+  font-weight: var(--font-weight-medium);
 }
 
 .hero-description {
@@ -233,6 +370,43 @@
   gap: var(--space-4);
   justify-content: center;
   margin-bottom: var(--space-10);
+}
+
+/* ── Button Ripple / Glow ── */
+.btn-glow {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, 0.35);
+  transform: scale(0);
+  animation: rippleExpand 0.65s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes rippleExpand {
+  0% {
+    transform: scale(0);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* Subtle glow on hover for primary buttons */
+.btn-glow:hover {
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.2),
+              0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.btn-glow:active {
+  box-shadow: 0 0 24px rgba(16, 185, 129, 0.3),
+              0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .hero-stats {
@@ -440,6 +614,11 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
+/* Override ripple color in CTA section */
+.cta-section .btn-ripple {
+  background: rgba(0, 108, 73, 0.3);
+}
+
 /* ───── Responsive ───── */
 @media (max-width: 768px) {
   .home-nav {
@@ -460,10 +639,24 @@
 
   .hero-title {
     font-size: 2.25rem;
+    min-height: 3.5em;
   }
 
   .hero-description {
     font-size: 1rem;
+  }
+
+  .hero-search {
+    max-width: 100%;
+  }
+
+  .hero-glow {
+    width: 400px;
+    height: 300px;
+  }
+
+  .hero-glow-secondary {
+    display: none;
   }
 
   .hero-stats {
