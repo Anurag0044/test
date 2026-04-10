@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Footer from '../components/Footer';
 import { addHistoryEntry } from '../services/historyService';
-import Tesseract from 'tesseract.js';
 import './AnalyzerPage.css';
 
 const API_BASE = 'https://medintel-api.onrender.com/api/medicines';
@@ -11,11 +10,11 @@ import { useChat } from '../context/ChatContext';
 
 // ---- Status messages for the clinical AI flow ----
 const STATUS_MESSAGES_MEDICINE = [
-  'Initializing analysis...',
-  'Processing prescription image...',
-  'Extracting medical entities...',
-  'Querying Gemini AI for clinical data...',
-  'Generating verified results...',
+  'Initializing scan...',
+  'Processing medicine image...',
+  'Extracting names via OCR.space...',
+  'Querying MedIntel database...',
+  'Generating verified alternatives...',
 ];
 
 const STATUS_MESSAGES_PRESCRIPTION = [
@@ -213,43 +212,57 @@ export default function AnalyzerPage() {
   };
 
   // ============================================================
-  //  MEDICINE IMAGE — MedIntel API-powered flow
+  //  MEDICINE IMAGE — MedIntel API + OCR.space Flow
   // ============================================================
   const processMedicineData = async () => {
     let finalResults = [];
     let hadApiFailure = false;
 
     try {
-      // Step 1: OCR — Extract text from image
+      // Step 1: OCR — Extract text using OCR.space (Engine 2 for better accuracy)
       let ocrText = '';
-      if (fileUrl) {
+      const apiKey = import.meta.env.VITE_OCR_SPACE_API_KEY;
+
+      if (fileBlob && apiKey) {
         try {
-          console.log('[MedIntel] Starting OCR...');
-          const { data: { text } } = await Tesseract.recognize(fileUrl, 'eng');
-          ocrText = text;
-          console.log('[MedIntel] OCR Result:', ocrText);
+          console.log('[MedIntel] Starting Medicine OCR (OCR.space)...');
+          const formData = new FormData();
+          formData.append('file', fileBlob);
+          formData.append('apikey', apiKey);
+          formData.append('language', 'eng');
+          formData.append('OCREngine', '2'); 
+          
+          const ocrResponse = await fetch('https://api.ocr.space/parse/image', {
+            method: 'POST',
+            body: formData,
+          });
+          const ocrData = await ocrResponse.json();
+          
+          if (ocrData?.ParsedResults?.[0]?.ParsedText) {
+            ocrText = ocrData.ParsedResults[0].ParsedText;
+            console.log('[MedIntel] OCR.space Result:', ocrText);
+          }
         } catch (ocrErr) {
-          console.warn('[MedIntel] OCR failed:', ocrErr);
+          console.warn('[MedIntel] OCR.space failed, text extraction empty:', ocrErr);
         }
       }
 
       // Step 2: Extract candidate medicine names from OCR text
-      // Split into words/phrases, filter short ones, deduplicate
       const words = ocrText
         .replace(/[^a-zA-Z0-9\s]/g, ' ')
         .split(/\s+/)
         .filter(w => w.length >= 3)
         .map(w => w.toLowerCase());
-      const uniqueWords = [...new Set(words)];
-
+      
       // Also try the filename as a search term
       if (fileName) {
         const cleanName = fileName.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9]/g, ' ').trim();
         if (cleanName.length >= 3) {
-          uniqueWords.unshift(cleanName.toLowerCase());
+          words.unshift(cleanName.toLowerCase());
         }
       }
 
+      const uniqueWords = [...new Set(words)];
       console.log('[MedIntel] Search candidates:', uniqueWords.slice(0, 15));
 
       // Step 3: Search the MedIntel API for each candidate word
@@ -265,7 +278,6 @@ export default function AnalyzerPage() {
           const data = await res.json();
           if (data.success && data.data?.length > 0) {
             for (const med of data.data) {
-              // Avoid duplicates
               if (!foundMedicines.find(m => m._id === med._id)) {
                 foundMedicines.push(med);
               }
@@ -274,8 +286,6 @@ export default function AnalyzerPage() {
         } catch (err) {
           console.warn(`[MedIntel] Search failed for "${word}":`, err);
         }
-
-        // Stop once we have enough results
         if (foundMedicines.length >= 5) break;
       }
 
@@ -286,39 +296,21 @@ export default function AnalyzerPage() {
           name: 'No Medicine Detected',
           dose: '-',
           instructions: 'Try uploading a clearer image with the medicine name visible.',
-          description: 'We could not identify any medicine from this image. Ensure the medicine name or packaging text is clearly visible.',
-          safetyNotes: '',
-          category: '',
-          image: null,
+          description: 'We could not identify any medicine from this image using OCR.space. Ensure the text is readable.',
           alternatives: [],
-          composition: '',
-          manufacturer: '',
-          sideEffects: [],
-          safetyLevel: '',
         }];
       } else {
-        // Step 4: For each found medicine, fetch alternatives using its composition
+        // Step 4: Fetch alternatives using composition
         for (const med of foundMedicines) {
           let alternatives = [];
-
           if (med.composition) {
             try {
               const altRes = await fetch(`${API_BASE}/alternatives?composition=${encodeURIComponent(med.composition)}`);
               const altData = await altRes.json();
               if (altData.success && altData.data?.alternatives?.length > 0) {
-                // Exclude the original medicine itself
                 alternatives = altData.data.alternatives
                   .filter(a => a._id !== med._id)
-                  .slice(0, 6)
-                  .map(a => ({
-                    name: a.name,
-                    price: a.price,
-                    manufacturer: a.manufacturer,
-                    strength: a.strength,
-                    savings: a.savings || 0,
-                    savingsPercent: a.savingsPercent || 0,
-                    safetyLevel: a.safetyLevel,
-                  }));
+                  .slice(0, 6);
               }
             } catch (err) {
               console.warn(`[MedIntel] Alternatives fetch failed for "${med.composition}":`, err);
@@ -330,10 +322,9 @@ export default function AnalyzerPage() {
             name: med.name,
             dose: med.strength || 'As prescribed',
             instructions: med.usage || 'Follow your physician\'s instructions.',
-            description: `${med.name} is a ${med.category || 'medicine'} containing ${med.composition}. ${med.dosageForm} form. Classified as ${med.classification || 'General'}.`,
-            safetyNotes: med.sideEffects?.length ? `Side effects may include: ${med.sideEffects.join(', ')}.` : '',
+            description: `${med.name} (${med.composition}). Manufacturer: ${med.manufacturer}.`,
+            safetyNotes: med.sideEffects?.length ? `Side effects: ${med.sideEffects.join(', ')}.` : '',
             category: med.category || '',
-            image: null,
             alternatives,
             composition: med.composition,
             manufacturer: med.manufacturer,
@@ -345,43 +336,31 @@ export default function AnalyzerPage() {
     } catch (err) {
       console.error('[MedIntel] Analysis pipeline error:', err);
       hadApiFailure = true;
-      finalResults = [{
-        id: 'error-fallback',
-        name: 'Analysis Error',
-        dose: '-',
-        instructions: 'Please try uploading the prescription again.',
-        description: 'The analyzer was unable to process this image. This may be due to image quality or a temporary service issue.',
-        safetyNotes: '',
-        category: '',
-        image: null,
-        alternatives: [],
-      }];
+      setApiError(true);
     }
 
     setResults(finalResults);
     setApiError(hadApiFailure);
 
-    // Build context string for chatbot
+    // Build context for chatbot
     const ctxLines = finalResults.map(r =>
-      `Medicine: ${r.name}\nDosage: ${r.dose}\nDescription: ${r.description}\nAlternatives: ${(r.alternatives || []).map(a => `${a.name} ₹${a.price}`).join(', ')}`
+      `Medicine: ${r.name}\nComposition: ${r.composition}\nAlternatives: ${(r.alternatives || []).map(a => `${a.name} ₹${a.price}`).join(', ')}`
     ).join('\n---\n');
     setAnalyzerContext(ctxLines);
 
-    // Log each detected medicine into localStorage history
+    // History logging
     for (const med of finalResults) {
-      const alts = med.alternatives || [];
-      const cheapest = alts.length ? Math.min(...alts.map(a => a.price)) : 0;
+      if (med.id === 'no-match') continue;
       addHistoryEntry({
         name: med.name,
         dose: med.dose,
-        category: 'Prescription Analysis',
+        category: 'Medicine Scan',
         status: 'Verified',
-        savings: cheapest ? `₹${cheapest.toFixed(2)}` : '₹0.00',
-        alternatives: alts.length,
+        savings: med.alternatives?.[0] ? `₹${med.alternatives[0].price}` : '₹0.00',
+        alternatives: med.alternatives?.length || 0,
       });
     }
 
-    // Transition
     setStage(STAGE.TRANSITION);
     transitionTimerRef.current = setTimeout(() => {
       setStage(STAGE.RESULTS);

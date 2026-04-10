@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Footer from '../components/Footer'
 import './ComparisonPage.css'
 
@@ -10,6 +10,80 @@ export default function ComparisonPage() {
   const [error, setError] = useState('')
   const [sourceMedicine, setSourceMedicine] = useState(null)
   const [alternatives, setAlternatives] = useState([])
+  const fileInputRef = useRef(null)
+
+  const handleImageSearch = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setLoading(true)
+    setSearchTerm('Analyzing image...')
+    setError('')
+    setSourceMedicine(null)
+    setAlternatives([])
+
+    try {
+      const apiKey = import.meta.env.VITE_OCR_SPACE_API_KEY
+      if (!apiKey) throw new Error('OCR API key missing')
+
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('apikey', apiKey)
+      formData.append('language', 'eng')
+      formData.append('OCREngine', '2')
+
+      const ocrRes = await fetch('https://api.ocr.space/parse/image', {
+        method: 'POST',
+        body: formData
+      })
+      const ocrData = await ocrRes.json()
+      const text = ocrData?.ParsedResults?.[0]?.ParsedText || ''
+      
+      if (!text.trim()) {
+        throw new Error('Could not read any text from image.')
+      }
+
+      // Extract words and try to find a medicine
+      const words = text
+        .replace(/[^a-zA-Z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter(w => w.length >= 3)
+      
+      if (words.length === 0) throw new Error('No medicine names identified in image.')
+
+      // Try searching for the first few words until we find a match
+      let foundMed = null
+      for (const word of words.slice(0, 5)) {
+        const res = await fetch(`${API_BASE}/search?name=${encodeURIComponent(word)}`)
+        const data = await res.json()
+        if (data.success && data.data?.length > 0) {
+          foundMed = data.data[0]
+          setSearchTerm(foundMed.name)
+          break
+        }
+      }
+
+      if (!foundMed) {
+        throw new Error(`Could not find "${words[0]}" in our pharmaceutical database.`)
+      }
+
+      setSourceMedicine(foundMed)
+      if (foundMed.composition) {
+        const altRes = await fetch(`${API_BASE}/alternatives?composition=${encodeURIComponent(foundMed.composition)}`)
+        const altData = await altRes.json()
+        if (altData.success && altData.data?.alternatives?.length > 0) {
+          setAlternatives(altData.data.alternatives.filter(a => a._id !== foundMed._id))
+        }
+      }
+    } catch (err) {
+      console.error('[MedIntel] Image comparison error:', err)
+      setError(err.message || 'Image analysis failed.')
+      setSearchTerm('')
+    } finally {
+      setLoading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
 
   const handleAnalyze = async () => {
     const query = searchTerm.trim()
@@ -85,7 +159,26 @@ export default function ComparisonPage() {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           onKeyDown={handleKeyDown}
+          disabled={loading}
         />
+        
+        <input 
+          type="file" 
+          accept="image/*" 
+          ref={fileInputRef} 
+          style={{ display: 'none' }} 
+          onChange={handleImageSearch} 
+        />
+        
+        <button 
+          className="icon-btn-secondary" 
+          onClick={() => fileInputRef.current?.click()}
+          title="Analyze from Image"
+          disabled={loading}
+        >
+          <span className="material-icons-outlined">photo_camera</span>
+        </button>
+
         <button
           className="btn btn-primary btn-sm"
           onClick={handleAnalyze}
