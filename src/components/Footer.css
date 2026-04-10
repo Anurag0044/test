@@ -1,11 +1,16 @@
 .footer {
   padding: var(--space-8) var(--space-7);
   background-color: var(--surface-container-low);
+  transition: background-color 0.4s ease;
 }
 
 .footer-dark {
   background-color: var(--inverse-surface);
   color: var(--inverse-on-surface);
+}
+
+[data-theme="dark"] .footer-dark {
+  background-color: #080c10;
 }
 
 .footer-inner {

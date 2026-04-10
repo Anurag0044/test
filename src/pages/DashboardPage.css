@@ -2,6 +2,16 @@
   padding: var(--space-7) var(--space-8);
   max-width: 1100px;
   animation: fadeIn 0.4s ease-out;
+  transition: background-color 0.4s ease;
+}
+
+/* Dark mode card transition */
+[data-theme="dark"] .dashboard .card {
+  transition: background-color 0.4s ease, box-shadow 0.4s ease;
+}
+
+[data-theme="dark"] .pro-card {
+  background: linear-gradient(135deg, #0a3d26, #065f3a);
 }
 
 /* ───── Page Header ───── */

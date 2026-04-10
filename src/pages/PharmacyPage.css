@@ -89,6 +89,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
+  transition: background 0.4s ease;
 }
 
 .pharmacy-map-icon {

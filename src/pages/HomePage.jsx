@@ -1,9 +1,12 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import ThemeToggle from '../components/ThemeToggle'
 import Footer from '../components/Footer'
 import './HomePage.css'
 
 export default function HomePage() {
   const navigate = useNavigate()
+  const [menuOpen, setMenuOpen] = useState(false)
 
   return (
     <div className="home">
@@ -14,9 +17,12 @@ export default function HomePage() {
             <div className="home-nav-logo">M</div>
             <span className="home-nav-name">MedIntel</span>
           </div>
+
+          {/* Desktop links */}
           <div className="home-nav-links">
             <a href="#features" className="home-nav-link">Features</a>
             <a href="#benchmarks" className="home-nav-link">About</a>
+            <ThemeToggle />
             <button className="btn btn-outline btn-sm" onClick={() => navigate('/login')}>
               Sign In
             </button>
@@ -24,6 +30,40 @@ export default function HomePage() {
               Get Started
             </button>
           </div>
+
+          {/* Mobile: theme toggle + hamburger */}
+          <div className="home-nav-mobile-actions">
+            <ThemeToggle />
+            <button
+              className={`hamburger ${menuOpen ? 'hamburger-active' : ''}`}
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label="Toggle menu"
+              aria-expanded={menuOpen}
+            >
+              <span className="hamburger-line" />
+              <span className="hamburger-line" />
+              <span className="hamburger-line" />
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile menu dropdown */}
+        <div className={`mobile-menu ${menuOpen ? 'mobile-menu-open' : ''}`}>
+          <a href="#features" className="mobile-menu-link" onClick={() => setMenuOpen(false)}>
+            <span className="material-icons-outlined icon-sm">auto_awesome</span>
+            Features
+          </a>
+          <a href="#benchmarks" className="mobile-menu-link" onClick={() => setMenuOpen(false)}>
+            <span className="material-icons-outlined icon-sm">info</span>
+            About
+          </a>
+          <div className="mobile-menu-divider" />
+          <button className="btn btn-outline mobile-menu-btn" onClick={() => { setMenuOpen(false); navigate('/login') }}>
+            Sign In
+          </button>
+          <button className="btn btn-primary mobile-menu-btn" onClick={() => { setMenuOpen(false); navigate('/login') }}>
+            Get Started
+          </button>
         </div>
       </nav>
 

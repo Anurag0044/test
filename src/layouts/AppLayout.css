@@ -9,4 +9,5 @@
   min-height: 100vh;
   background-color: var(--surface);
   overflow-y: auto;
+  transition: background-color 0.4s ease;
 }

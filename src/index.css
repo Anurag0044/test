@@ -97,6 +97,79 @@
   --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ---------- Dark Mode Token Overrides ---------- */
+[data-theme="dark"] {
+  /* Primary Palette (slightly brighter for contrast on dark) */
+  --primary: #4edea3;
+  --primary-container: #10b981;
+  --primary-fixed: #0a3d26;
+  --primary-fixed-dim: #4edea3;
+  --on-primary: #003823;
+  --on-primary-container: #6ffbbe;
+
+  /* Secondary Palette */
+  --secondary: #adc6ff;
+  --secondary-container: #004395;
+  --secondary-fixed: #1a2a44;
+  --secondary-fixed-dim: #adc6ff;
+  --on-secondary: #002d6e;
+
+  /* Tertiary Palette */
+  --tertiary: #3a4556;
+  --tertiary-container: #6a7589;
+  --tertiary-fixed: #2a3442;
+  --on-tertiary-fixed-variant: #2a3240;
+
+  /* Surface / Background — Deep clinical dark */
+  --background: #0f1419;
+  --surface: #0f1419;
+  --surface-container: #1a2028;
+  --surface-container-high: #222a34;
+  --surface-container-highest: #2c3440;
+  --surface-container-low: #151b22;
+  --surface-container-lowest: #1a2028;
+  --surface-dim: #0f1419;
+
+  /* On-Surface */
+  --on-background: #e0e3e5;
+  --on-surface: #e0e3e5;
+  --on-surface-variant: #9aa8a0;
+
+  /* Outline */
+  --outline: #7a8880;
+  --outline-variant: #3a4840;
+
+  /* Error */
+  --error: #ff8a80;
+  --error-container: #4a1414;
+  --on-error-container: #ffdad6;
+
+  /* Inverse */
+  --inverse-surface: #e0e3e5;
+  --inverse-on-surface: #191c1e;
+  --inverse-primary: #006c49;
+
+  /* Shadows (darker, more visible) */
+  --shadow-ambient: 0px 12px 32px rgba(0, 0, 0, 0.3);
+  --shadow-elevated: 0px 4px 16px rgba(0, 0, 0, 0.25);
+  --shadow-sm: 0px 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Dark mode chip adjustments */
+[data-theme="dark"] .chip-info {
+  color: #adc6ff;
+}
+
+[data-theme="dark"] .chip-success {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: #6ffbbe;
+}
+
+[data-theme="dark"] .chip-error {
+  background-color: rgba(186, 26, 26, 0.2);
+  color: #ff8a80;
+}
+
 /* ---------- CSS Reset & Base ---------- */
 *,
 *::before,
@@ -111,6 +184,11 @@ html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 body {
@@ -120,6 +198,7 @@ body {
   background-color: var(--background);
   line-height: 1.6;
   min-height: 100vh;
+  transition: background-color 0.4s ease, color 0.4s ease;
 }
 
 a {

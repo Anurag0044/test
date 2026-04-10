@@ -64,6 +64,10 @@
   background-color: rgba(186, 26, 26, 0.04);
 }
 
+[data-theme="dark"] .settings-danger-card {
+  background-color: rgba(255, 138, 128, 0.06);
+}
+
 .settings-danger-card:hover {
   box-shadow: none;
 }
