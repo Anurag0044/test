@@ -4,6 +4,8 @@ import ThemeToggle from '../components/ThemeToggle'
 import Footer from '../components/Footer'
 import './HomePage.css'
 
+const API_BASE = 'https://medintel-api.onrender.com/api/medicines/alternatives';
+
 /* ── Typewriter hook ── */
 function useTypewriter(fullText, {
   typeSpeed = 60,
@@ -73,6 +75,14 @@ export default function HomePage() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [searchFocused, setSearchFocused] = useState(false)
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState(null)
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [searchError, setSearchError] = useState('')
+  const searchRef = useRef(null)
+  const debounceRef = useRef(null)
+
   const fullHeadline = 'Find Affordable Medicine Alternatives Instantly'
   const { display, isTyping } = useTypewriter(fullHeadline)
 
@@ -86,6 +96,68 @@ export default function HomePage() {
     createRipple(e)
     setTimeout(() => navigate(path), 200)
   }, [navigate])
+
+  /* ── Medicine Search ── */
+  const searchMedicines = async (query) => {
+    if (!query || query.trim().length < 2) {
+      setSearchResults(null)
+      setSearchError('')
+      return
+    }
+    setSearchLoading(true)
+    setSearchError('')
+    try {
+      const res = await fetch(`${API_BASE}?composition=${encodeURIComponent(query.trim())}`);
+      const data = await res.json();
+      if (data.success && data.data?.alternatives?.length > 0) {
+        setSearchResults(data.data);
+      } else {
+        setSearchResults(null);
+        setSearchError(`No alternatives found for "${query}". Try a composition like paracetamol, amoxicillin...`);
+      }
+    } catch (err) {
+      console.error('Search API error:', err);
+      setSearchResults(null);
+      setSearchError('Unable to reach the server. Please try again.');
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const handleSearchInput = (e) => {
+    const val = e.target.value;
+    setSearchQuery(val);
+    clearTimeout(debounceRef.current);
+    if (val.trim().length >= 2) {
+      debounceRef.current = setTimeout(() => searchMedicines(val), 600);
+    } else {
+      setSearchResults(null);
+      setSearchError('');
+    }
+  };
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    clearTimeout(debounceRef.current);
+    searchMedicines(searchQuery);
+  };
+
+  /* Close results on outside click */
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        // keep results visible, don't auto-close
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const closeResults = () => {
+    setSearchResults(null);
+    setSearchError('');
+    setSearchQuery('');
+  };
 
   return (
     <div className="home">
@@ -172,17 +244,96 @@ export default function HomePage() {
           </h1>
 
           {/* ── Search Bar ── */}
-          <div className={`hero-search ${searchFocused ? 'hero-search-focused' : ''}`}>
+          <form className={`hero-search ${searchFocused ? 'hero-search-focused' : ''}`} onSubmit={handleSearchSubmit} ref={searchRef}>
             <span className="material-icons-outlined hero-search-icon">search</span>
             <input
               type="text"
               className="hero-search-input"
               id="hero-search-input"
-              placeholder='Search medicine (e.g., Crocin, Dolo 650...)'
+              placeholder='Search medicine (e.g., Paracetamol, Amoxicillin...)'
+              value={searchQuery}
+              onChange={handleSearchInput}
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
             />
-          </div>
+            {searchLoading && (
+              <span className="hero-search-spinner material-icons-outlined">autorenew</span>
+            )}
+            {searchQuery && !searchLoading && (
+              <button type="button" className="hero-search-clear" onClick={closeResults} aria-label="Clear">
+                <span className="material-icons-outlined">close</span>
+              </button>
+            )}
+            <button type="submit" className="btn btn-primary btn-sm hero-search-btn" disabled={searchLoading || searchQuery.trim().length < 2}>
+              Search
+            </button>
+          </form>
+
+          {/* ── Search Results ── */}
+          {(searchResults || searchError) && (
+            <div className="hero-results">
+              {searchError && (
+                <div className="hero-results-error">
+                  <span className="material-icons-outlined">info</span>
+                  <p>{searchError}</p>
+                </div>
+              )}
+              {searchResults && (
+                <>
+                  <div className="hero-results-header">
+                    <div className="hero-results-title">
+                      <span className="material-icons-outlined" style={{ color: '#22c55e' }}>verified</span>
+                      <h3>Found {searchResults.alternatives.length} Alternative{searchResults.alternatives.length !== 1 ? 's' : ''}</h3>
+                    </div>
+                    <button className="btn btn-ghost btn-sm" onClick={closeResults}>
+                      <span className="material-icons-outlined icon-sm">close</span>
+                    </button>
+                  </div>
+
+                  {/* Cheapest highlight */}
+                  {searchResults.cheapest && (
+                    <div className="hero-results-cheapest">
+                      <span className="material-icons-outlined">emoji_events</span>
+                      <div>
+                        <strong>Cheapest: {searchResults.cheapest.name}</strong>
+                        <span> — ₹{searchResults.cheapest.price} by {searchResults.cheapest.manufacturer}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="hero-results-grid">
+                    {searchResults.alternatives.slice(0, 8).map((med) => (
+                      <div key={med._id} className="hero-result-card">
+                        <div className="hero-result-top">
+                          <div>
+                            <h4 className="hero-result-name">{med.name}</h4>
+                            <p className="hero-result-comp">{med.composition}</p>
+                          </div>
+                          <span className="hero-result-price">₹{med.price}</span>
+                        </div>
+                        <div className="hero-result-meta">
+                          <span className="hero-result-tag">{med.strength}</span>
+                          <span className="hero-result-tag">{med.dosageForm}</span>
+                          <span className={`hero-result-tag ${med.safetyLevel === 'Safe' ? 'tag-safe' : 'tag-caution'}`}>{med.safetyLevel}</span>
+                        </div>
+                        <div className="hero-result-bottom">
+                          <span className="hero-result-mfr">{med.manufacturer}</span>
+                          {med.savingsPercent > 0 && (
+                            <span className="hero-result-savings">Save {med.savingsPercent}%</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <p className="hero-results-disclaimer">
+                    <span className="material-icons-outlined icon-sm">info</span>
+                    Consult your doctor before switching to an alternative. Prices may vary.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
 
           <p className="hero-description">
             Our AI-powered analysis scans thousands of clinical databases to find identical

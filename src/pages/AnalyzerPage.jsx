@@ -1,19 +1,29 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Footer from '../components/Footer';
-import { medicineDB, getAlternatives, getMedicineInfo, identifyMedicines } from '../services/medicineEngine';
 import { addHistoryEntry } from '../services/historyService';
 import Tesseract from 'tesseract.js';
 import './AnalyzerPage.css';
 
+const API_BASE = 'https://medintel-api.onrender.com/api/medicines';
+
 import { useChat } from '../context/ChatContext';
 
 // ---- Status messages for the clinical AI flow ----
-const STATUS_MESSAGES = [
+const STATUS_MESSAGES_MEDICINE = [
   'Initializing analysis...',
   'Processing prescription image...',
   'Extracting medical entities...',
   'Querying Gemini AI for clinical data...',
   'Generating verified results...',
+];
+
+const STATUS_MESSAGES_PRESCRIPTION = [
+  'Initializing OCR engine...',
+  'Uploading prescription to OCR.space...',
+  'Extracting handwritten text...',
+  'Parsing clinical content...',
+  'Formatting prescription data...',
 ];
 
 const STATUS_INTERVAL = 1300; // ms per message
@@ -35,15 +45,29 @@ const STAGE = {
   ERROR: 5,
 };
 
+// ---- Analysis modes ----
+const MODE = {
+  MEDICINE: 'medicine',
+  PRESCRIPTION: 'prescription',
+};
+
 export default function AnalyzerPage() {
+  const [searchParams] = useSearchParams();
+  const initialMode = searchParams.get('mode') === 'prescription' ? MODE.PRESCRIPTION : MODE.MEDICINE;
+
   const [isDragging, setIsDragging] = useState(false);
   const [fileUrl, setFileUrl] = useState(null);
+  const [fileBlob, setFileBlob] = useState(null);  // keep the raw file for OCR.space upload
   const [fileName, setFileName] = useState('');
   const [stage, setStage] = useState(STAGE.IDLE);
   const [statusIndex, setStatusIndex] = useState(0);
   const [results, setResults] = useState(null);
   const [apiError, setApiError] = useState(false);
-  
+  const [mode, setMode] = useState(initialMode);
+
+  // Prescription-specific state
+  const [prescriptionText, setPrescriptionText] = useState('');
+
   const { setChatOpen, setAnalyzerContext } = useChat();
 
   const statusTimerRef = useRef(null);
@@ -51,14 +75,18 @@ export default function AnalyzerPage() {
   const transitionTimerRef = useRef(null);
   const previewTimerRef = useRef(null);
 
+  const STATUS_MESSAGES = mode === MODE.PRESCRIPTION ? STATUS_MESSAGES_PRESCRIPTION : STATUS_MESSAGES_MEDICINE;
+
   // ---- File handling ----
   const handleFile = useCallback((file) => {
     if (!file) return;
     const url = URL.createObjectURL(file);
     setFileUrl(url);
+    setFileBlob(file);
     setFileName(file.name);
     setStage(STAGE.PREVIEW);
     setResults(null);
+    setPrescriptionText('');
     setApiError(false);
     setStatusIndex(0);
     setAnalyzerContext('');
@@ -90,7 +118,7 @@ export default function AnalyzerPage() {
     }, STATUS_INTERVAL);
 
     return () => clearTimeout(statusTimerRef.current);
-  }, [stage, statusIndex]);
+  }, [stage, statusIndex, STATUS_MESSAGES.length]);
 
   // ---- Trigger processing after status animation ----
   useEffect(() => {
@@ -99,7 +127,11 @@ export default function AnalyzerPage() {
     const totalDuration = STATUS_MESSAGES.length * STATUS_INTERVAL + 800;
 
     processTimerRef.current = setTimeout(() => {
-      processMedicineData();
+      if (mode === MODE.PRESCRIPTION) {
+        processDoctorPrescription();
+      } else {
+        processMedicineData();
+      }
     }, totalDuration);
 
     return () => clearTimeout(processTimerRef.current);
@@ -115,7 +147,74 @@ export default function AnalyzerPage() {
     };
   }, []);
 
-  // ---- Core processing logic (Gemini-powered) ----
+  // ============================================================
+  //  DOCTOR PRESCRIPTION — OCR.space API
+  // ============================================================
+  const processDoctorPrescription = async () => {
+    let extractedText = '';
+    let hadApiFailure = false;
+
+    try {
+      const apiKey = import.meta.env.VITE_OCR_SPACE_API_KEY;
+      if (!apiKey || !fileBlob) throw new Error('Missing API key or file');
+
+      const formData = new FormData();
+      formData.append('file', fileBlob);
+      formData.append('apikey', apiKey);
+      formData.append('language', 'eng');
+      formData.append('isOverlayRequired', 'false');
+      formData.append('detectOrientation', 'true');
+      formData.append('scale', 'true');
+      formData.append('OCREngine', '2'); // Engine 2 is better for handwriting
+
+      console.log('[MedIntel] Sending to OCR.space...');
+
+      const response = await fetch('https://api.ocr.space/parse/image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data?.ParsedResults?.[0]?.ParsedText) {
+        extractedText = data.ParsedResults[0].ParsedText;
+      } else if (data?.ErrorMessage) {
+        console.error('[MedIntel] OCR.space error:', data.ErrorMessage);
+        hadApiFailure = true;
+        extractedText = 'OCR service returned an error. Please try again with a clearer image.';
+      } else {
+        hadApiFailure = true;
+        extractedText = 'No text could be extracted from this image. Please ensure the prescription is clear and readable.';
+      }
+    } catch (err) {
+      console.error('[MedIntel] Prescription OCR error:', err);
+      hadApiFailure = true;
+      extractedText = 'Failed to connect to OCR service. Check your internet connection and try again.';
+    }
+
+    setPrescriptionText(extractedText);
+    setApiError(hadApiFailure);
+
+    // Log to history
+    addHistoryEntry({
+      name: 'Doctor Prescription Scan',
+      dose: fileName,
+      category: 'Prescription Upload',
+      status: hadApiFailure ? 'Error' : 'Verified',
+      savings: '₹0.00',
+      alternatives: 0,
+    });
+
+    // Transition
+    setStage(STAGE.TRANSITION);
+    transitionTimerRef.current = setTimeout(() => {
+      setStage(STAGE.RESULTS);
+    }, 500);
+  };
+
+  // ============================================================
+  //  MEDICINE IMAGE — MedIntel API-powered flow
+  // ============================================================
   const processMedicineData = async () => {
     let finalResults = [];
     let hadApiFailure = false;
@@ -134,50 +233,114 @@ export default function AnalyzerPage() {
         }
       }
 
-      // Step 2: Identify medicines using Gemini AI
-      let identified = [];
-      if (ocrText.trim().length > 5) {
-        identified = await identifyMedicines(ocrText);
+      // Step 2: Extract candidate medicine names from OCR text
+      // Split into words/phrases, filter short ones, deduplicate
+      const words = ocrText
+        .replace(/[^a-zA-Z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter(w => w.length >= 3)
+        .map(w => w.toLowerCase());
+      const uniqueWords = [...new Set(words)];
+
+      // Also try the filename as a search term
+      if (fileName) {
+        const cleanName = fileName.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9]/g, ' ').trim();
+        if (cleanName.length >= 3) {
+          uniqueWords.unshift(cleanName.toLowerCase());
+        }
       }
 
-      // Fallback: try filename
-      if (identified.length === 0 && fileName) {
-        const dbKeys = Object.keys(medicineDB);
-        const lowerName = fileName.toLowerCase();
-        for (const key of dbKeys) {
-          if (lowerName.includes(key)) {
-            identified.push({ name: medicineDB[key].name, dose: medicineDB[key].dose, rawName: key });
+      console.log('[MedIntel] Search candidates:', uniqueWords.slice(0, 15));
+
+      // Step 3: Search the MedIntel API for each candidate word
+      let foundMedicines = [];
+      const searched = new Set();
+
+      for (const word of uniqueWords.slice(0, 15)) {
+        if (searched.has(word)) continue;
+        searched.add(word);
+
+        try {
+          const res = await fetch(`${API_BASE}/search?name=${encodeURIComponent(word)}`);
+          const data = await res.json();
+          if (data.success && data.data?.length > 0) {
+            for (const med of data.data) {
+              // Avoid duplicates
+              if (!foundMedicines.find(m => m._id === med._id)) {
+                foundMedicines.push(med);
+              }
+            }
           }
+        } catch (err) {
+          console.warn(`[MedIntel] Search failed for "${word}":`, err);
         }
+
+        // Stop once we have enough results
+        if (foundMedicines.length >= 5) break;
       }
 
-      // Absolute fallback
-      if (identified.length === 0) {
-        identified = [{ name: 'Paracetamol', dose: '500 mg', rawName: 'paracetamol' }];
+      if (foundMedicines.length === 0) {
         hadApiFailure = true;
-      }
+        finalResults = [{
+          id: 'no-match',
+          name: 'No Medicine Detected',
+          dose: '-',
+          instructions: 'Try uploading a clearer image with the medicine name visible.',
+          description: 'We could not identify any medicine from this image. Ensure the medicine name or packaging text is clearly visible.',
+          safetyNotes: '',
+          category: '',
+          image: null,
+          alternatives: [],
+          composition: '',
+          manufacturer: '',
+          sideEffects: [],
+          safetyLevel: '',
+        }];
+      } else {
+        // Step 4: For each found medicine, fetch alternatives using its composition
+        for (const med of foundMedicines) {
+          let alternatives = [];
 
-      // Step 3: For each medicine, get Gemini AI description + local alternatives
-      for (const med of identified) {
-        const geminiInfo = await getMedicineInfo(med.rawName || med.name);
-        const dbInfo = medicineDB[med.rawName] || null;
-        const alternatives = getAlternatives(med.rawName || med.name);
+          if (med.composition) {
+            try {
+              const altRes = await fetch(`${API_BASE}/alternatives?composition=${encodeURIComponent(med.composition)}`);
+              const altData = await altRes.json();
+              if (altData.success && altData.data?.alternatives?.length > 0) {
+                // Exclude the original medicine itself
+                alternatives = altData.data.alternatives
+                  .filter(a => a._id !== med._id)
+                  .slice(0, 6)
+                  .map(a => ({
+                    name: a.name,
+                    price: a.price,
+                    manufacturer: a.manufacturer,
+                    strength: a.strength,
+                    savings: a.savings || 0,
+                    savingsPercent: a.savingsPercent || 0,
+                    safetyLevel: a.safetyLevel,
+                  }));
+              }
+            } catch (err) {
+              console.warn(`[MedIntel] Alternatives fetch failed for "${med.composition}":`, err);
+            }
+          }
 
-        if (geminiInfo.description === 'Unable to retrieve medical information at this time.') {
-          hadApiFailure = true;
+          finalResults.push({
+            id: med._id,
+            name: med.name,
+            dose: med.strength || 'As prescribed',
+            instructions: med.usage || 'Follow your physician\'s instructions.',
+            description: `${med.name} is a ${med.category || 'medicine'} containing ${med.composition}. ${med.dosageForm} form. Classified as ${med.classification || 'General'}.`,
+            safetyNotes: med.sideEffects?.length ? `Side effects may include: ${med.sideEffects.join(', ')}.` : '',
+            category: med.category || '',
+            image: null,
+            alternatives,
+            composition: med.composition,
+            manufacturer: med.manufacturer,
+            price: med.price,
+            safetyLevel: med.safetyLevel,
+          });
         }
-
-        finalResults.push({
-          id: med.rawName || med.name.toLowerCase(),
-          name: med.name || geminiInfo.title,
-          dose: med.dose || dbInfo?.dose || 'As prescribed',
-          instructions: dbInfo?.instructions || geminiInfo.usage || 'Follow your physician\'s instructions.',
-          description: geminiInfo.description,
-          safetyNotes: geminiInfo.safetyNotes || '',
-          category: geminiInfo.category || '',
-          image: geminiInfo.image,
-          alternatives,
-        });
       }
     } catch (err) {
       console.error('[MedIntel] Analysis pipeline error:', err);
@@ -187,7 +350,7 @@ export default function AnalyzerPage() {
         name: 'Analysis Error',
         dose: '-',
         instructions: 'Please try uploading the prescription again.',
-        description: 'The AI was unable to process this prescription. This may be due to image quality or a temporary service issue.',
+        description: 'The analyzer was unable to process this image. This may be due to image quality or a temporary service issue.',
         safetyNotes: '',
         category: '',
         image: null,
@@ -200,7 +363,7 @@ export default function AnalyzerPage() {
 
     // Build context string for chatbot
     const ctxLines = finalResults.map(r =>
-      `Medicine: ${r.name}\nDosage: ${r.dose}\nDescription: ${r.description}\nAlternatives: ${r.alternatives.map(a => `${a.name} ₹${a.price}`).join(', ')}`
+      `Medicine: ${r.name}\nDosage: ${r.dose}\nDescription: ${r.description}\nAlternatives: ${(r.alternatives || []).map(a => `${a.name} ₹${a.price}`).join(', ')}`
     ).join('\n---\n');
     setAnalyzerContext(ctxLines);
 
@@ -218,8 +381,7 @@ export default function AnalyzerPage() {
       });
     }
 
-    // Transition: fade out processing → slight delay → fade in results
-  
+    // Transition
     setStage(STAGE.TRANSITION);
     transitionTimerRef.current = setTimeout(() => {
       setStage(STAGE.RESULTS);
@@ -230,8 +392,10 @@ export default function AnalyzerPage() {
   const handleReset = () => {
     setStage(STAGE.IDLE);
     setFileUrl(null);
+    setFileBlob(null);
     setFileName('');
     setResults(null);
+    setPrescriptionText('');
     setStatusIndex(0);
     setApiError(false);
     setAnalyzerContext('');
@@ -239,9 +403,37 @@ export default function AnalyzerPage() {
 
   // ========================== RENDER ==========================
 
+  // ---- Mode Selector ----
+  const renderModeSelector = () => (
+    <div className="mode-selector">
+      <button
+        className={`mode-btn ${mode === MODE.MEDICINE ? 'mode-btn-active' : ''}`}
+        onClick={() => { setMode(MODE.MEDICINE); handleReset(); }}
+      >
+        <span className="material-icons-outlined">medication</span>
+        <div>
+          <strong>Medicine Analysis</strong>
+          <span>Identify medicines &amp; find alternatives</span>
+        </div>
+      </button>
+      <button
+        className={`mode-btn ${mode === MODE.PRESCRIPTION ? 'mode-btn-active' : ''}`}
+        onClick={() => { setMode(MODE.PRESCRIPTION); handleReset(); }}
+      >
+        <span className="material-icons-outlined">description</span>
+        <div>
+          <strong>Doctor Prescription</strong>
+          <span>Extract text from handwritten prescriptions</span>
+        </div>
+      </button>
+    </div>
+  );
+
   // ---- Upload / Idle State ----
   const renderIdleState = () => (
     <>
+      {renderModeSelector()}
+
       <div className="analyzer-grid">
         <div className="analyzer-left">
           <label
@@ -252,9 +444,13 @@ export default function AnalyzerPage() {
           >
             <input type="file" accept="image/*" className="hidden-file-input" onChange={handleFileChange} />
             <div className="upload-icon-ring">
-              <span className="material-icons-outlined">cloud_upload</span>
+              <span className="material-icons-outlined">
+                {mode === MODE.PRESCRIPTION ? 'document_scanner' : 'cloud_upload'}
+              </span>
             </div>
-            <h3 className="title-lg">Drop prescription here</h3>
+            <h3 className="title-lg">
+              {mode === MODE.PRESCRIPTION ? 'Drop doctor prescription here' : 'Drop prescription here'}
+            </h3>
             <p className="body-md text-muted">Supports JPG, PNG up to 10MB</p>
             <span className="btn btn-primary btn-sm" style={{ marginTop: '12px' }}>Browse Files</span>
           </label>
@@ -272,12 +468,25 @@ export default function AnalyzerPage() {
         <div className="analyzer-right">
           <div className="card flat-info-card">
             <span className="material-icons-outlined text-primary" style={{ fontSize: '32px', marginBottom: '12px' }}>tips_and_updates</span>
-            <h3 className="title-md">For Accurate Results</h3>
+            <h3 className="title-md">
+              {mode === MODE.PRESCRIPTION ? 'For Best Prescription Scan' : 'For Accurate Results'}
+            </h3>
             <ul className="info-list" style={{ marginTop: '16px' }}>
-              <li><span className="material-icons-outlined">check_circle</span> Ensure good, even lighting</li>
-              <li><span className="material-icons-outlined">check_circle</span> Capture the entire prescription page</li>
-              <li><span className="material-icons-outlined">check_circle</span> Keep handwriting clearly visible</li>
-              <li><span className="material-icons-outlined">check_circle</span> Avoid shadows and glare</li>
+              {mode === MODE.PRESCRIPTION ? (
+                <>
+                  <li><span className="material-icons-outlined">check_circle</span> Make sure the entire prescription is visible</li>
+                  <li><span className="material-icons-outlined">check_circle</span> Flatten any creases before photographing</li>
+                  <li><span className="material-icons-outlined">check_circle</span> Use good lighting — avoid flash glare</li>
+                  <li><span className="material-icons-outlined">check_circle</span> Handwritten text works best with OCR Engine 2</li>
+                </>
+              ) : (
+                <>
+                  <li><span className="material-icons-outlined">check_circle</span> Ensure good, even lighting</li>
+                  <li><span className="material-icons-outlined">check_circle</span> Capture the entire prescription page</li>
+                  <li><span className="material-icons-outlined">check_circle</span> Keep handwriting clearly visible</li>
+                  <li><span className="material-icons-outlined">check_circle</span> Avoid shadows and glare</li>
+                </>
+              )}
             </ul>
           </div>
         </div>
@@ -308,7 +517,7 @@ export default function AnalyzerPage() {
         {fileUrl && <img src={fileUrl} alt="Prescription Preview" className="preview-image" />}
       </div>
       <p className="body-md text-muted" style={{ textAlign: 'center', marginTop: '16px' }}>
-        Preparing analysis...
+        {mode === MODE.PRESCRIPTION ? 'Preparing prescription scan...' : 'Preparing analysis...'}
       </p>
     </div>
   );
@@ -331,7 +540,9 @@ export default function AnalyzerPage() {
             <div className="ai-indicator">
               <div className="ai-ring"></div>
               <div className="ai-core">
-                <span className="material-icons-outlined">psychology</span>
+                <span className="material-icons-outlined">
+                  {mode === MODE.PRESCRIPTION ? 'document_scanner' : 'psychology'}
+                </span>
               </div>
             </div>
 
@@ -361,16 +572,96 @@ export default function AnalyzerPage() {
     );
   };
 
-  // ---- Results State ----
-  const renderResultsState = () => (
+  // ---- Prescription Results ----
+  const renderPrescriptionResults = () => (
+    <div className="clinical-results animate-slide-up">
+      {apiError && (
+        <div className="api-fallback-notice">
+          <span className="material-icons-outlined">info</span>
+          <p>
+            OCR could not fully process the image. The extracted text may be incomplete.
+            Try uploading a clearer image.
+          </p>
+        </div>
+      )}
+
+      <div className="results-header">
+        <div className="results-header-left">
+          <span className="material-icons-outlined results-success-icon">
+            {apiError ? 'warning_amber' : 'verified'}
+          </span>
+          <div>
+            <h2 className="headline-sm">{apiError ? 'Partial Extraction' : 'Prescription Extracted'}</h2>
+            <p className="body-md text-muted">
+              Text extracted from: {fileName}
+            </p>
+          </div>
+        </div>
+        <div className="results-header-actions">
+          <button className="btn btn-outline btn-sm" onClick={() => {
+            navigator.clipboard.writeText(prescriptionText);
+          }}>
+            <span className="material-icons-outlined" style={{ fontSize: '18px' }}>content_copy</span>
+            Copy Text
+          </button>
+          <button className="btn btn-outline btn-sm" onClick={handleReset}>
+            <span className="material-icons-outlined" style={{ fontSize: '18px' }}>refresh</span>
+            New Scan
+          </button>
+        </div>
+      </div>
+
+      {/* Extracted Prescription Card */}
+      <div className="prescription-result-card">
+        <div className="prescription-result-layout">
+          {/* Image preview */}
+          <div className="prescription-image-wrap">
+            {fileUrl && <img src={fileUrl} alt="Scanned prescription" className="prescription-image" />}
+          </div>
+
+          {/* Extracted text */}
+          <div className="prescription-text-section">
+            <div className="prescription-text-header">
+              <span className="material-icons-outlined" style={{ color: '#22c55e' }}>description</span>
+              <h3 className="title-md">Extracted Prescription Text</h3>
+            </div>
+            <div className="prescription-text-body">
+              {prescriptionText.split('\n').map((line, i) => (
+                <p key={i} className={line.trim() ? 'prescription-line' : 'prescription-line-empty'}>
+                  {line.trim() || '\u00A0'}
+                </p>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="ai-source-badge">
+          <span className="material-icons-outlined" style={{ fontSize: '14px' }}>auto_awesome</span>
+          Powered by OCR.space API
+        </div>
+      </div>
+
+      {/* Medical Disclaimer */}
+      <div className="medical-disclaimer">
+        <span className="material-icons-outlined">info</span>
+        <p>
+          OCR extraction may not be 100% accurate for handwritten prescriptions.
+          Always verify extracted text with the original document.
+        </p>
+      </div>
+    </div>
+  );
+
+  // ---- Medicine Results State ----
+  const renderMedicineResultsState = () => (
     <div className="clinical-results animate-slide-up">
       {/* API fallback notice */}
       {apiError && (
         <div className="api-fallback-notice">
           <span className="material-icons-outlined">info</span>
           <p>
-            Some medical data could not be verified via AI.
-            Displaying locally verified information where available.
+            Some medicines could not be found in the database.
+            Ensure the image has clear, readable medicine names.
           </p>
         </div>
       )}
@@ -412,16 +703,32 @@ export default function AnalyzerPage() {
                   <h3 className="title-lg">{med.name}</h3>
                   <span className="dose-badge">{med.dose}</span>
                 </div>
-                {med.image && (
-                  <div className="med-thumbnail-wrap">
-                    <img src={med.image} alt={med.name} className="med-thumbnail" />
-                  </div>
+                {med.price && (
+                  <span className="med-price-tag">₹{med.price}</span>
                 )}
               </div>
 
+              {/* Composition & Manufacturer */}
+              {(med.composition || med.manufacturer) && (
+                <div className="med-meta-row">
+                  {med.composition && (
+                    <span className="med-meta-chip">
+                      <span className="material-icons-outlined" style={{ fontSize: '14px' }}>science</span>
+                      {med.composition}
+                    </span>
+                  )}
+                  {med.manufacturer && (
+                    <span className="med-meta-chip">
+                      <span className="material-icons-outlined" style={{ fontSize: '14px' }}>business</span>
+                      {med.manufacturer}
+                    </span>
+                  )}
+                </div>
+              )}
+
               <p className="med-description">{med.description}</p>
 
-              {/* Safety Notes from Gemini */}
+              {/* Safety Notes */}
               {med.safetyNotes && (
                 <div className="med-safety-notes">
                   <span className="material-icons-outlined" style={{ fontSize: '16px', color: '#f59e0b' }}>warning_amber</span>
@@ -436,31 +743,38 @@ export default function AnalyzerPage() {
             </div>
 
             {/* Alternatives Section */}
-            <div className="alternatives-section">
-              <h4 className="title-sm alternatives-heading">
-                <span className="material-icons-outlined" style={{ fontSize: '18px' }}>swap_horiz</span>
-                Alternatives
-              </h4>
-              <div className="alternatives-grid">
-                {med.alternatives.map((alt, i) => (
-                  <div className={`alt-card ${i === 0 ? 'cost-effective' : ''}`} key={i}>
-                    <div className="alt-card-top">
-                      <span className="alt-name">{alt.name}</span>
-                      {i === 0 && <span className="alt-tag cost-tag">Cost Effective</span>}
-                      {i === 1 && <span className="alt-tag popular-tag">Popular Alternative</span>}
+            {med.alternatives?.length > 0 && (
+              <div className="alternatives-section">
+                <h4 className="title-sm alternatives-heading">
+                  <span className="material-icons-outlined" style={{ fontSize: '18px' }}>swap_horiz</span>
+                  Alternatives ({med.alternatives.length})
+                </h4>
+                <div className="alternatives-grid">
+                  {med.alternatives.map((alt, i) => (
+                    <div className={`alt-card ${i === 0 ? 'cost-effective' : ''}`} key={i}>
+                      <div className="alt-card-top">
+                        <span className="alt-name">{alt.name}</span>
+                        {i === 0 && <span className="alt-tag cost-tag">Cost Effective</span>}
+                        {alt.savingsPercent > 0 && i !== 0 && (
+                          <span className="alt-tag popular-tag">Save {alt.savingsPercent}%</span>
+                        )}
+                      </div>
+                      <div className="alt-card-bottom">
+                        <span className="alt-price">₹{alt.price}</span>
+                        {alt.manufacturer && (
+                          <span className="alt-manufacturer">{alt.manufacturer}</span>
+                        )}
+                      </div>
                     </div>
-                    <div className="alt-card-bottom">
-                      <span className="alt-price">₹{alt.price}</span>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Gemini AI source badge */}
+            {/* Source badge */}
             <div className="ai-source-badge">
               <span className="material-icons-outlined" style={{ fontSize: '14px' }}>auto_awesome</span>
-              Powered by Gemini AI
+              Powered by MedIntel API
             </div>
           </div>
         ))}
@@ -477,13 +791,23 @@ export default function AnalyzerPage() {
     </div>
   );
 
+  // ---- Decide which results view to render ----
+  const renderResultsState = () => {
+    if (mode === MODE.PRESCRIPTION) {
+      return renderPrescriptionResults();
+    }
+    return renderMedicineResultsState();
+  };
+
   return (
     <div className="analyzer">
       <header className="page-header">
         <div>
           <h1 className="headline-md">Prescription Analyzer</h1>
           <p className="body-md text-muted">
-            Upload a handwritten or digital prescription to extract clinical data with AI precision.
+            {mode === MODE.PRESCRIPTION
+              ? 'Upload a handwritten doctor prescription to extract readable text using AI OCR.'
+              : 'Upload a handwritten or digital prescription to extract clinical data with AI precision.'}
           </p>
         </div>
       </header>

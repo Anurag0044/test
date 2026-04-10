@@ -616,12 +616,72 @@
 .alt-card-bottom {
   display: flex;
   align-items: center;
+  justify-content: space-between;
 }
 
 .alt-price {
   font-size: 1.1rem;
   font-weight: 700;
   color: #0f766e;
+}
+
+.alt-manufacturer {
+  font-size: 0.72rem;
+  color: var(--outline, #6c7a71);
+  font-weight: 500;
+}
+
+/* ---- Medicine Price Tag ---- */
+.med-price-tag {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #0f766e;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ---- Meta Row (composition + manufacturer) ---- */
+.med-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: var(--space-4);
+}
+
+.med-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  background: rgba(34, 197, 94, 0.06);
+  color: var(--on-surface-variant, #475569);
+  border: 1px solid rgba(34, 197, 94, 0.12);
+}
+
+.med-meta-chip .material-icons-outlined {
+  color: #16a34a;
+}
+
+/* Dark mode */
+[data-theme="dark"] .med-price-tag {
+  color: var(--primary);
+}
+
+[data-theme="dark"] .med-meta-chip {
+  background: rgba(78, 222, 163, 0.06);
+  border-color: rgba(78, 222, 163, 0.12);
+  color: var(--on-surface-variant);
+}
+
+[data-theme="dark"] .med-meta-chip .material-icons-outlined {
+  color: var(--primary);
+}
+
+[data-theme="dark"] .alt-manufacturer {
+  color: var(--outline);
 }
 
 /* ============================================================
@@ -984,3 +1044,202 @@
   border-color: var(--outline-variant);
   color: var(--outline);
 }
+
+/* ============================================================
+   MODE SELECTOR
+   ============================================================ */
+.mode-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  margin-bottom: var(--space-7);
+}
+
+.mode-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--radius-xl);
+  border: 1.5px solid var(--outline-variant, #dde4df);
+  background: var(--surface-container-lowest, #fff);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-align: left;
+}
+
+.mode-btn .material-icons-outlined {
+  font-size: 32px;
+  color: var(--outline, #6c7a71);
+  flex-shrink: 0;
+  transition: color 0.25s ease;
+}
+
+.mode-btn div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mode-btn strong {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--on-surface, #1a1c1e);
+}
+
+.mode-btn span:not(.material-icons-outlined) {
+  font-size: 0.82rem;
+  color: var(--on-surface-variant, #6c7a71);
+}
+
+.mode-btn:hover {
+  border-color: rgba(34, 197, 94, 0.35);
+  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.08);
+  transform: translateY(-1px);
+}
+
+.mode-btn-active {
+  border-color: #22c55e;
+  background: linear-gradient(160deg, rgba(240, 253, 244, 0.9), rgba(255, 255, 255, 0.98));
+  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.12), inset 0 0 0 1px rgba(34, 197, 94, 0.08);
+}
+
+.mode-btn-active .material-icons-outlined {
+  color: #16a34a;
+}
+
+/* ============================================================
+   PRESCRIPTION RESULTS
+   ============================================================ */
+.prescription-result-card {
+  border-radius: var(--radius-xl);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(240, 253, 244, 0.6));
+  border: 1px solid rgba(34, 197, 94, 0.12);
+  box-shadow: 0 8px 24px rgba(15, 118, 110, 0.06);
+  overflow: hidden;
+  padding: var(--space-6);
+}
+
+.prescription-result-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.prescription-image-wrap {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid rgba(34, 197, 94, 0.14);
+  box-shadow: 0 4px 16px rgba(15, 118, 110, 0.06);
+  background: #f8fafc;
+}
+
+.prescription-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-height: 450px;
+  object-fit: contain;
+}
+
+.prescription-text-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.prescription-text-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid rgba(34, 197, 94, 0.1);
+}
+
+.prescription-text-body {
+  max-height: 400px;
+  overflow-y: auto;
+  padding: var(--space-4);
+  background: var(--surface-container-lowest, #fafcfb);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--outline-variant, #dde4df);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
+.prescription-line {
+  margin: 0;
+  padding: 2px 0;
+  color: var(--on-surface, #1a1c1e);
+}
+
+.prescription-line-empty {
+  margin: 0;
+  padding: 2px 0;
+  height: 1.2em;
+}
+
+/* ---- Dark mode ---- */
+
+[data-theme="dark"] .mode-btn {
+  background: var(--surface-container-low);
+  border-color: var(--outline-variant);
+}
+
+[data-theme="dark"] .mode-btn strong {
+  color: var(--on-surface);
+}
+
+[data-theme="dark"] .mode-btn:hover {
+  border-color: rgba(78, 222, 163, 0.35);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .mode-btn-active {
+  border-color: var(--primary);
+  background: linear-gradient(160deg, var(--surface-container), rgba(78, 222, 163, 0.06));
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), inset 0 0 0 1px rgba(78, 222, 163, 0.1);
+}
+
+[data-theme="dark"] .mode-btn-active .material-icons-outlined {
+  color: var(--primary);
+}
+
+[data-theme="dark"] .prescription-result-card {
+  background: var(--surface-container-low);
+  border-color: var(--outline-variant);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .prescription-image-wrap {
+  background: var(--surface-container);
+  border-color: var(--outline-variant);
+}
+
+[data-theme="dark"] .prescription-text-header {
+  border-bottom-color: var(--outline-variant);
+}
+
+[data-theme="dark"] .prescription-text-body {
+  background: var(--surface-container);
+  border-color: var(--outline-variant);
+  color: var(--on-surface);
+}
+
+[data-theme="dark"] .prescription-line {
+  color: var(--on-surface);
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 640px) {
+  .mode-selector {
+    grid-template-columns: 1fr;
+  }
+
+  .prescription-result-layout {
+    grid-template-columns: 1fr;
+  }
+}
+

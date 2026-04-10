@@ -173,7 +173,7 @@ export default function DashboardPage() {
         <div className="card dashboard-card">
           <div className="dashboard-card-header">
             <h3 className="title-lg">Prescription Uploads</h3>
-            <button className="btn btn-ghost btn-sm" onClick={() => navigate('/app/analyzer')}>
+            <button className="btn btn-ghost btn-sm" onClick={() => navigate('/app/analyzer?mode=prescription')}>
               Upload New
               <span className="material-icons-outlined icon-sm">upload</span>
             </button>
