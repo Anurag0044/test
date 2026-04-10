@@ -1,5 +1,6 @@
 import { useRef, useCallback } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 import ThemeToggle from './ThemeToggle'
 import './Sidebar.css'
 
@@ -38,6 +39,7 @@ function createNavRipple(e) {
 
 export default function Sidebar() {
   const navigate = useNavigate()
+  const { user } = useAuth()
 
   const handleNavClick = useCallback((e) => {
     createNavRipple(e)
@@ -116,11 +118,21 @@ export default function Sidebar() {
           <span className="nav-label">Logout</span>
         </button>
 
-        <div className="sidebar-user">
-          <div className="sidebar-avatar">SC</div>
-          <div>
-            <div className="sidebar-user-name">Dr. Sarah Chen</div>
-            <div className="sidebar-user-role">Chief Resident</div>
+        <div className="sidebar-user" onClick={() => navigate('/app/profile')} style={{ cursor: 'pointer' }} title="Go to Profile">
+          <div className="sidebar-avatar">
+            {user?.photoURL ? (
+              <img src={user.photoURL} alt="User Avatar" className="sidebar-avatar-img" />
+            ) : (
+              (user?.displayName || user?.email || 'U').charAt(0).toUpperCase()
+            )}
+          </div>
+          <div style={{ overflow: 'hidden' }}>
+            <div className="sidebar-user-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {user?.displayName || user?.email?.split('@')[0] || 'Clinical User'}
+            </div>
+            <div className="sidebar-user-role" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {user?.email || 'Verified Account'}
+            </div>
           </div>
         </div>
       </div>
