@@ -10,33 +10,37 @@ import HistoryPage from './pages/HistoryPage'
 import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
 import ProtectedRoute from './components/ProtectedRoute'
+import GlobalChatbot from './components/GlobalChatbot'
 
 function App() {
   return (
-    <Routes>
-      {/* Public routes */}
-      <Route path="/" element={<HomePage />} />
-      <Route path="/login" element={<LoginPage />} />
+    <>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<LoginPage />} />
 
-      {/* Protected app routes (with sidebar layout) */}
-      <Route
-        path="/app"
-        element={
-          <ProtectedRoute>
-            <AppLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<DashboardPage />} />
-        <Route path="dashboard" element={<DashboardPage />} />
-        <Route path="analyzer" element={<AnalyzerPage />} />
-        <Route path="comparison" element={<ComparisonPage />} />
-        <Route path="pharmacy" element={<PharmacyPage />} />
-        <Route path="history" element={<HistoryPage />} />
-        <Route path="profile" element={<ProfilePage />} />
-        <Route path="settings" element={<SettingsPage />} />
-      </Route>
-    </Routes>
+        {/* Protected app routes (with sidebar layout) */}
+        <Route
+          path="/app"
+          element={
+            <ProtectedRoute>
+              <AppLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<DashboardPage />} />
+          <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="analyzer" element={<AnalyzerPage />} />
+          <Route path="comparison" element={<ComparisonPage />} />
+          <Route path="pharmacy" element={<PharmacyPage />} />
+          <Route path="history" element={<HistoryPage />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="settings" element={<SettingsPage />} />
+        </Route>
+      </Routes>
+      <GlobalChatbot />
+    </>
   )
 }
 

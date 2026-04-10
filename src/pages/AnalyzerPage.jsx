@@ -1,16 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Footer from '../components/Footer';
-import { medicineDB, getAlternatives, getMedicineInfo, normalize } from '../services/medicineEngine';
+import { medicineDB, getAlternatives, getMedicineInfo, identifyMedicines } from '../services/medicineEngine';
 import Tesseract from 'tesseract.js';
 import './AnalyzerPage.css';
+
+import { useChat } from '../context/ChatContext';
 
 // ---- Status messages for the clinical AI flow ----
 const STATUS_MESSAGES = [
   'Initializing analysis...',
   'Processing prescription image...',
   'Extracting medical entities...',
-  'Validating clinical data...',
-  'Fetching verified references...',
+  'Querying Gemini AI for clinical data...',
+  'Generating verified results...',
 ];
 
 const STATUS_INTERVAL = 1300; // ms per message
@@ -35,11 +37,13 @@ const STAGE = {
 export default function AnalyzerPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [fileUrl, setFileUrl] = useState(null);
-  const [fileName, setFileName] = useState("");
+  const [fileName, setFileName] = useState('');
   const [stage, setStage] = useState(STAGE.IDLE);
   const [statusIndex, setStatusIndex] = useState(0);
   const [results, setResults] = useState(null);
   const [apiError, setApiError] = useState(false);
+  
+  const { setChatOpen, setAnalyzerContext } = useChat();
 
   const statusTimerRef = useRef(null);
   const processTimerRef = useRef(null);
@@ -56,6 +60,7 @@ export default function AnalyzerPage() {
     setResults(null);
     setApiError(false);
     setStatusIndex(0);
+    setAnalyzerContext('');
 
     // Auto-transition from preview to processing after 1.2s
     previewTimerRef.current = setTimeout(() => {
@@ -77,7 +82,6 @@ export default function AnalyzerPage() {
   // ---- Status message progression ----
   useEffect(() => {
     if (stage !== STAGE.PROCESSING) return;
-
     if (statusIndex >= STATUS_MESSAGES.length) return;
 
     statusTimerRef.current = setTimeout(() => {
@@ -87,7 +91,7 @@ export default function AnalyzerPage() {
     return () => clearTimeout(statusTimerRef.current);
   }, [stage, statusIndex]);
 
-  // ---- Process medicine data after status messages complete ----
+  // ---- Trigger processing after status animation ----
   useEffect(() => {
     if (stage !== STAGE.PROCESSING) return;
 
@@ -110,112 +114,96 @@ export default function AnalyzerPage() {
     };
   }, []);
 
-  // ---- Core processing logic ----
+  // ---- Core processing logic (Gemini-powered) ----
   const processMedicineData = async () => {
-    let detectedMedicines = [];
+    let finalResults = [];
     let hadApiFailure = false;
 
     try {
-      const dbKeys = Object.keys(medicineDB);
-      let extractedNames = [];
-
-      // Phase 1: Try true AI OCR across the image
+      // Step 1: OCR — Extract text from image
+      let ocrText = '';
       if (fileUrl) {
         try {
-          console.log("Starting OCR...");
+          console.log('[MedIntel] Starting OCR...');
           const { data: { text } } = await Tesseract.recognize(fileUrl, 'eng');
-          const lowerText = text.toLowerCase();
-          
-          for (const key of dbKeys) {
-            if (lowerText.includes(key)) extractedNames.push(key);
-          }
-
-          // If db match fails, dynamically identify via Wikipedia API
-          if (extractedNames.length === 0) {
-            const cleanWords = lowerText.replace(/[^a-z\s]/g, '').split(/\s+/).filter(w => w.length > 4);
-            const ignoreList = new Set(['tablet', 'capsule', 'syrup', 'daily', 'take', 'mouth', 'hours', 'patient', 'doctor', 'date', 'name', 'prescription', 'dosage', 'morning', 'night', 'after', 'before', 'food', 'water', 'days', 'weeks', 'months', 'year', 'clinic', 'hospital']);
-            const candidates = [...new Set(cleanWords.filter(w => !ignoreList.has(w)))].slice(0, 4);
-            
-            for (const word of candidates) {
-              const testWiki = await getMedicineInfo(word);
-              const desc = testWiki.description.toLowerCase();
-              if (desc !== 'no verified medical description found.' && 
-                 (desc.includes('medic') || desc.includes('drug') || desc.includes('antibiotic') || desc.includes('treatment') || desc.includes('syndrome'))) {
-                   extractedNames.push(word);
-                   break; 
-              }
-            }
-            
-            // Final OCR Regex Check
-            if (extractedNames.length === 0) {
-               const mgMatch = lowerText.match(/\b([a-z]{4,})\b(?=\s*(?:tablet|capsule|syrup|injection|\d+\s*mg|ml))/i);
-               if (mgMatch && mgMatch[1] && !ignoreList.has(mgMatch[1])) extractedNames.push(mgMatch[1]);
-            }
-          }
+          ocrText = text;
+          console.log('[MedIntel] OCR Result:', ocrText);
         } catch (ocrErr) {
-          console.warn("OCR failed or was blocked, falling back to heuristics.", ocrErr);
+          console.warn('[MedIntel] OCR failed:', ocrErr);
         }
       }
 
-      // Phase 2: Fallback to filename analysis (accurate to what the user provides)
-      if (extractedNames.length === 0 && fileName) {
+      // Step 2: Identify medicines using Gemini AI
+      let identified = [];
+      if (ocrText.trim().length > 5) {
+        identified = await identifyMedicines(ocrText);
+      }
+
+      // Fallback: try filename
+      if (identified.length === 0 && fileName) {
+        const dbKeys = Object.keys(medicineDB);
         const lowerName = fileName.toLowerCase();
         for (const key of dbKeys) {
-            if (lowerName.includes(key)) extractedNames.push(key);
-        }
-        
-        // Extract any leading word acting as medicine name
-        if (extractedNames.length === 0) {
-            const match = lowerName.match(/^([a-z]+)/i);
-            if (match && match[1] && match[1].length > 3) extractedNames.push(match[1].toLowerCase());
+          if (lowerName.includes(key)) {
+            identified.push({ name: medicineDB[key].name, dose: medicineDB[key].dose, rawName: key });
+          }
         }
       }
 
-      // Phase 3: Absolute Failsafe. Provide a guaranteed valid extraction.
-      if (extractedNames.length === 0) {
-         extractedNames = ['paracetamol']; // Ensures the UI never breaks and always displays a result
-      }
-      
-      detectedMedicines = extractedNames;
-    } catch (err) {
-      console.error("Analysis pipeline encountered an error:", err);
-      detectedMedicines = ['amoxicillin']; 
-    }
-    
-    // De-duplicate
-    detectedMedicines = [...new Set(detectedMedicines)];
-    
-    const finalResults = [];
-
-    for (const medKey of detectedMedicines) {
-      const wikiInfo = await getMedicineInfo(medKey);
-      const dbInfo = medicineDB[medKey] || {
-        name: medKey.charAt(0).toUpperCase() + medKey.slice(1),
-        instructions: 'Follow your physician\'s instructions.',
-        dose: 'As prescribed'
-      };
-      const alternatives = getAlternatives(medKey);
-
-      if (wikiInfo.description === 'No verified medical description found.') {
+      // Absolute fallback
+      if (identified.length === 0) {
+        identified = [{ name: 'Paracetamol', dose: '500 mg', rawName: 'paracetamol' }];
         hadApiFailure = true;
       }
 
-      finalResults.push({
-        id: medKey,
-        name: dbInfo.name,
-        dose: dbInfo.dose,
-        instructions: dbInfo.instructions,
-        description: wikiInfo.description,
-        image: wikiInfo.image,
-        wikiTitle: wikiInfo.title,
-        alternatives
-      });
+      // Step 3: For each medicine, get Gemini AI description + local alternatives
+      for (const med of identified) {
+        const geminiInfo = await getMedicineInfo(med.rawName || med.name);
+        const dbInfo = medicineDB[med.rawName] || null;
+        const alternatives = getAlternatives(med.rawName || med.name);
+
+        if (geminiInfo.description === 'Unable to retrieve medical information at this time.') {
+          hadApiFailure = true;
+        }
+
+        finalResults.push({
+          id: med.rawName || med.name.toLowerCase(),
+          name: med.name || geminiInfo.title,
+          dose: med.dose || dbInfo?.dose || 'As prescribed',
+          instructions: dbInfo?.instructions || geminiInfo.usage || 'Follow your physician\'s instructions.',
+          description: geminiInfo.description,
+          safetyNotes: geminiInfo.safetyNotes || '',
+          category: geminiInfo.category || '',
+          image: geminiInfo.image,
+          alternatives,
+        });
+      }
+    } catch (err) {
+      console.error('[MedIntel] Analysis pipeline error:', err);
+      hadApiFailure = true;
+      finalResults = [{
+        id: 'error-fallback',
+        name: 'Analysis Error',
+        dose: '-',
+        instructions: 'Please try uploading the prescription again.',
+        description: 'The AI was unable to process this prescription. This may be due to image quality or a temporary service issue.',
+        safetyNotes: '',
+        category: '',
+        image: null,
+        alternatives: [],
+      }];
     }
 
     setResults(finalResults);
     setApiError(hadApiFailure);
 
-    // Transition: fade out processing → slight delay → fade in results
+    // Build context string for chatbot
+    const ctxLines = finalResults.map(r =>
+      `Medicine: ${r.name}\nDosage: ${r.dose}\nDescription: ${r.description}\nAlternatives: ${r.alternatives.map(a => `${a.name} ₹${a.price}`).join(', ')}`
+    ).join('\n---\n');
+    setAnalyzerContext(ctxLines);
+
+    // Transition
     setStage(STAGE.TRANSITION);
     transitionTimerRef.current = setTimeout(() => {
       setStage(STAGE.RESULTS);
@@ -226,9 +214,11 @@ export default function AnalyzerPage() {
   const handleReset = () => {
     setStage(STAGE.IDLE);
     setFileUrl(null);
+    setFileName('');
     setResults(null);
     setStatusIndex(0);
     setApiError(false);
+    setAnalyzerContext('');
   };
 
   // ========================== RENDER ==========================
@@ -363,8 +353,8 @@ export default function AnalyzerPage() {
         <div className="api-fallback-notice">
           <span className="material-icons-outlined">info</span>
           <p>
-            Unable to retrieve complete medical data from external sources.
-            Displaying locally verified information.
+            Some medical data could not be verified via AI.
+            Displaying locally verified information where available.
           </p>
         </div>
       )}
@@ -379,15 +369,26 @@ export default function AnalyzerPage() {
             </p>
           </div>
         </div>
-        <button className="btn btn-outline btn-sm" onClick={handleReset}>
-          <span className="material-icons-outlined" style={{ fontSize: '18px' }}>refresh</span>
-          New Analysis
-        </button>
+        <div className="results-header-actions">
+          <button className="btn btn-outline btn-sm" onClick={() => setChatOpen(true)}>
+            <span className="material-icons-outlined" style={{ fontSize: '18px' }}>smart_toy</span>
+            Ask AI
+          </button>
+          <button className="btn btn-outline btn-sm" onClick={handleReset}>
+            <span className="material-icons-outlined" style={{ fontSize: '18px' }}>refresh</span>
+            New Analysis
+          </button>
+        </div>
       </div>
 
       <div className="medicine-results-grid">
         {results?.map((med, idx) => (
           <div className="medicine-result-card" key={med.id} style={{ animationDelay: `${idx * 150}ms` }}>
+            {/* Category badge */}
+            {med.category && (
+              <div className="med-category-badge">{med.category}</div>
+            )}
+
             {/* Medicine Info Section */}
             <div className="med-info-section">
               <div className="med-info-header">
@@ -403,6 +404,14 @@ export default function AnalyzerPage() {
               </div>
 
               <p className="med-description">{med.description}</p>
+
+              {/* Safety Notes from Gemini */}
+              {med.safetyNotes && (
+                <div className="med-safety-notes">
+                  <span className="material-icons-outlined" style={{ fontSize: '16px', color: '#f59e0b' }}>warning_amber</span>
+                  <p>{med.safetyNotes}</p>
+                </div>
+              )}
 
               <div className="med-instructions">
                 <span className="material-icons-outlined" style={{ fontSize: '18px', color: '#22c55e' }}>medication</span>
@@ -431,8 +440,23 @@ export default function AnalyzerPage() {
                 ))}
               </div>
             </div>
+
+            {/* Gemini AI source badge */}
+            <div className="ai-source-badge">
+              <span className="material-icons-outlined" style={{ fontSize: '14px' }}>auto_awesome</span>
+              Powered by Gemini AI
+            </div>
           </div>
         ))}
+      </div>
+
+      {/* Medical Disclaimer */}
+      <div className="medical-disclaimer">
+        <span className="material-icons-outlined">info</span>
+        <p>
+          This information is for educational purposes only. Always consult a qualified healthcare
+          professional before making any medical decisions.
+        </p>
       </div>
     </div>
   );

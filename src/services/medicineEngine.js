@@ -1,8 +1,10 @@
 // src/services/medicineEngine.js
 // ============================================================
-// MedIntel — Resilient Medicine Data Engine
-// Wikipedia API integration with 2-step fallback system
+// MedIntel — Medicine Data Engine
+// Gemini-powered medical intelligence (Wikipedia fully removed)
 // ============================================================
+
+import { getMedicineInfoFromGemini, identifyMedicinesFromText } from './geminiService';
 
 // ---- Input Cleaning ----
 const STRIP_WORDS = new Set([
@@ -26,7 +28,7 @@ export const cleanMedicineName = (rawName) => {
 
 export const normalize = (name) => cleanMedicineName(name).toLowerCase();
 
-// ---- Local Medicine Database ----
+// ---- Local Medicine Database (cost/alternative reference) ----
 export const medicineDB = {
   amoxicillin: {
     name: "Amoxicillin Trihydrate",
@@ -110,74 +112,24 @@ export const medicineDB = {
   }
 };
 
-// ---- Wikipedia API — 2-Step Fallback System ----
-
-const WIKI_SUMMARY_BASE = 'https://en.wikipedia.org/api/rest_v1/page/summary/';
-const WIKI_SEARCH_BASE = 'https://en.wikipedia.org/w/api.php';
+// ---- Gemini-Powered Medicine Info (replaces Wikipedia) ----
 
 /**
- * STEP A: Direct Wikipedia Summary API
- */
-const fetchDirectSummary = async (term) => {
-  const url = `${WIKI_SUMMARY_BASE}${encodeURIComponent(term)}`;
-  const response = await fetch(url);
-  if (!response.ok) return null;
-  const data = await response.json();
-  if (!data.extract || data.type === 'disambiguation') return null;
-  return data;
-};
-
-/**
- * STEP B: Search Wikipedia, take first result, then fetch its summary
- */
-const fetchViaSearch = async (term) => {
-  const searchUrl = `${WIKI_SEARCH_BASE}?action=query&list=search&srsearch=${encodeURIComponent(term + ' medicine drug')}&format=json&origin=*`;
-  const searchResponse = await fetch(searchUrl);
-  if (!searchResponse.ok) return null;
-  const searchData = await searchResponse.json();
-  const results = searchData?.query?.search;
-  if (!results || results.length === 0) return null;
-  const bestTitle = results[0].title;
-  return await fetchDirectSummary(bestTitle);
-};
-
-/**
- * MAIN API FUNCTION — getMedicineInfo
- * Returns: { title, description, image, source }
- * NEVER throws — always returns a safe object.
+ * Get medicine information using Gemini AI.
+ * @param {string} medicineName
+ * @returns {{ title, description, usage, safetyNotes, image, source }}
  */
 export const getMedicineInfo = async (medicineName) => {
-  const safeReturn = {
-    title: medicineName || 'Unknown Medicine',
-    description: 'No verified medical description found.',
-    image: null,
-    source: 'wikipedia'
-  };
+  return await getMedicineInfoFromGemini(medicineName);
+};
 
-  try {
-    const cleaned = cleanMedicineName(medicineName);
-    if (!cleaned) return safeReturn;
-
-    // STEP A — Direct summary
-    let wikiData = await fetchDirectSummary(cleaned);
-
-    // STEP B — Fallback to search
-    if (!wikiData) {
-      wikiData = await fetchViaSearch(cleaned);
-    }
-
-    if (!wikiData) return safeReturn;
-
-    return {
-      title: wikiData.title || cleaned,
-      description: wikiData.extract || 'No verified medical description found.',
-      image: wikiData.thumbnail?.source || wikiData.originalimage?.source || null,
-      source: 'wikipedia'
-    };
-  } catch (err) {
-    console.error('[MedIntel] Wikipedia fetch failed:', err.message);
-    return safeReturn;
-  }
+/**
+ * Identify medicines from OCR text using Gemini AI reasoning.
+ * @param {string} ocrText - Raw OCR text from image
+ * @returns {Array<{name, dose, rawName}>}
+ */
+export const identifyMedicines = async (ocrText) => {
+  return await identifyMedicinesFromText(ocrText);
 };
 
 // Legacy compat wrapper
