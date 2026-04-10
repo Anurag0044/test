@@ -202,18 +202,18 @@ export default function HomePage() {
           </div>
           <div className="hero-stats">
             <div className="hero-stat">
-              <span className="hero-stat-value">50K+</span>
-              <span className="hero-stat-label">Active Users</span>
+              <span className="hero-stat-value">1000+</span>
+              <span className="hero-stat-label">Medicine Analyzed</span>
             </div>
             <div className="hero-stat-divider" />
             <div className="hero-stat">
-              <span className="hero-stat-value">₹14,500</span>
-              <span className="hero-stat-label">Avg. Annual Savings</span>
+              <span className="hero-stat-value">300+</span>
+              <span className="hero-stat-label">Alternatives Found</span>
             </div>
             <div className="hero-stat-divider" />
             <div className="hero-stat">
-              <span className="hero-stat-value">98.2%</span>
-              <span className="hero-stat-label">Match Accuracy</span>
+              <span className="hero-stat-value">40%</span>
+              <span className="hero-stat-label">Cost Reduction</span>
             </div>
           </div>
         </div>
