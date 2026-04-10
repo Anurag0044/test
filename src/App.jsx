@@ -9,6 +9,7 @@ import PharmacyPage from './pages/PharmacyPage'
 import HistoryPage from './pages/HistoryPage'
 import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
+import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
   return (
@@ -17,8 +18,15 @@ function App() {
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
 
-      {/* App routes (with sidebar layout) */}
-      <Route path="/app" element={<AppLayout />}>
+      {/* Protected app routes (with sidebar layout) */}
+      <Route
+        path="/app"
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route index element={<DashboardPage />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="analyzer" element={<AnalyzerPage />} />

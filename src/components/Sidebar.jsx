@@ -1,4 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 import './Sidebar.css'
 
 const navItems = [
@@ -17,6 +18,32 @@ const bottomItems = [
 
 export default function Sidebar() {
   const navigate = useNavigate()
+  const { user, logout } = useAuth()
+
+  // Generate avatar initials from displayName or email
+  function getInitials() {
+    if (user?.displayName) {
+      return user.displayName
+        .split(' ')
+        .map(w => w[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
+    }
+    if (user?.email) {
+      return user.email[0].toUpperCase()
+    }
+    return '?'
+  }
+
+  async function handleLogout() {
+    try {
+      await logout()
+      navigate('/login')
+    } catch (err) {
+      console.error('Logout error:', err)
+    }
+  }
 
   return (
     <aside className="sidebar">
@@ -54,16 +81,28 @@ export default function Sidebar() {
             <span className="nav-label">{item.label}</span>
           </a>
         ))}
-        <button className="nav-item nav-item-logout" onClick={() => navigate('/login')}>
+        <button className="nav-item nav-item-logout" onClick={handleLogout}>
           <span className="material-icons-outlined nav-icon">logout</span>
           <span className="nav-label">Logout</span>
         </button>
 
         <div className="sidebar-user">
-          <div className="sidebar-avatar">SC</div>
+          {user?.photoURL ? (
+            <img
+              src={user.photoURL}
+              alt="Avatar"
+              className="sidebar-avatar-img"
+            />
+          ) : (
+            <div className="sidebar-avatar">{getInitials()}</div>
+          )}
           <div>
-            <div className="sidebar-user-name">Dr. Sarah Chen</div>
-            <div className="sidebar-user-role">Chief Resident</div>
+            <div className="sidebar-user-name">
+              {user?.displayName || 'User'}
+            </div>
+            <div className="sidebar-user-role">
+              {user?.email || ''}
+            </div>
           </div>
         </div>
       </div>

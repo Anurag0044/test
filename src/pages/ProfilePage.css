@@ -4,6 +4,28 @@
   animation: fadeIn 0.4s ease-out;
 }
 
+/* ───── Status Messages ───── */
+.profile-message {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--space-5);
+}
+
+.profile-message-success {
+  background-color: var(--primary-fixed);
+  color: var(--on-primary-container);
+}
+
+.profile-message-error {
+  background-color: var(--error-container);
+  color: var(--on-error-container);
+}
+
 /* ───── Profile Hero ───── */
 .profile-hero {
   position: relative;
@@ -26,6 +48,7 @@
   position: relative;
 }
 
+/* ── Avatar ── */
 .profile-avatar-lg {
   width: 80px;
   height: 80px;
@@ -36,6 +59,21 @@
   justify-content: center;
   flex-shrink: 0;
   box-shadow: 0 0 0 4px var(--surface-container-lowest);
+  position: relative;
+  overflow: hidden;
+  transition: all var(--transition-fast);
+}
+
+.profile-avatar-editable {
+  cursor: pointer;
+}
+
+.profile-avatar-editable:hover {
+  box-shadow: 0 0 0 4px var(--primary-fixed-dim);
+}
+
+.profile-avatar-editable:hover .profile-avatar-overlay {
+  opacity: 1;
 }
 
 .profile-avatar-text {
@@ -44,6 +82,48 @@
   color: white;
 }
 
+.profile-avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.profile-avatar-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  border-radius: 50%;
+}
+
+.profile-avatar-overlay .material-icons-outlined {
+  font-size: 24px;
+}
+
+.profile-avatar-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.profile-file-input {
+  display: none;
+}
+
+/* ── Hero Info ── */
 .profile-hero-info {
   flex: 1;
   padding-top: var(--space-8);
@@ -56,6 +136,21 @@
 .profile-edit-btn {
   margin-left: auto;
   align-self: flex-end;
+}
+
+.profile-hero-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-left: auto;
+  align-self: flex-end;
+}
+
+.profile-remove-photo-btn {
+  color: var(--error) !important;
+}
+
+.profile-remove-photo-btn:hover {
+  background-color: var(--error-container) !important;
 }
 
 /* ───── Profile Grid ───── */
@@ -71,11 +166,22 @@
   padding: var(--space-6);
 }
 
+.profile-details-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-5);
+}
+
+.profile-details-header .profile-section-title {
+  margin-bottom: 0;
+}
+
 .profile-section-title {
   margin-bottom: var(--space-5);
 }
 
-/* ───── Details List ───── */
+/* ───── Details List (View Mode) ───── */
 .profile-details-list {
   display: flex;
   flex-direction: column;
@@ -101,6 +207,57 @@
 .profile-detail-row .material-icons-outlined {
   margin-top: 4px;
   flex-shrink: 0;
+}
+
+/* ───── Edit Form ───── */
+.profile-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.profile-edit-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-edit-group .input-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.profile-edit-group .input-label .material-icons-outlined {
+  color: var(--outline);
+}
+
+.profile-edit-group .input-field {
+  transition: all var(--transition-fast);
+}
+
+.profile-edit-group .input-field:focus {
+  box-shadow: 0 0 0 2px rgba(0, 108, 73, 0.35);
+  background-color: var(--surface-container-lowest);
+}
+
+.input-field-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.profile-edit-hint {
+  font-size: 0.6875rem;
+  color: var(--outline);
+  margin-top: var(--space-1);
+  font-style: italic;
+}
+
+.profile-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--surface-container-high);
 }
 
 /* ───── Prescriptions ───── */
@@ -137,7 +294,33 @@
   flex: 1;
 }
 
+/* ───── Button Loading (re-used from LoginPage) ───── */
+.btn-loading {
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.btn-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  flex-shrink: 0;
+}
+
+/* ───── Responsive ───── */
 @media (max-width: 900px) {
   .profile { padding: var(--space-5); }
   .profile-grid { grid-template-columns: 1fr; }
+  .profile-hero-content {
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+  .profile-hero-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }
