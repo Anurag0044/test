@@ -4,7 +4,7 @@
 // Production-grade medical reasoning via OpenRouter → Gemini
 // ============================================================
 
-const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 // ---- System Prompt ----
@@ -21,33 +21,31 @@ Rules:
 - Format responses as structured JSON when requested
 - Focus on evidence-based medical information only`;
 
-/**
- * Core API call to Gemini via OpenRouter
- * @param {string} userMessage - The user's message
- * @param {string} systemOverride - Optional system prompt override
- * @returns {string} Raw text response from Gemini
- */
 const callGemini = async (userMessage, systemOverride = null) => {
   if (!API_KEY) {
     throw new Error('Gemini API key not configured');
   }
 
-  const response = await fetch(API_URL, {
+  const GOOGLE_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
+
+  const response = await fetch(GOOGLE_API_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${API_KEY}`,
-      'HTTP-Referer': window.location.origin,
-      'X-Title': 'MedIntel Clinical Platform',
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.0-flash-001',
-      messages: [
-        { role: 'system', content: systemOverride || SYSTEM_PROMPT },
-        { role: 'user', content: userMessage },
-      ],
-      temperature: 0.3,
-      max_tokens: 2048,
+      systemInstruction: {
+        parts: [{ text: systemOverride || SYSTEM_PROMPT }]
+      },
+      contents: [{
+        role: 'user',
+        parts: [{ text: userMessage }]
+      }],
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 2048,
+        responseMimeType: 'application/json',
+      }
     }),
   });
 
@@ -58,7 +56,7 @@ const callGemini = async (userMessage, systemOverride = null) => {
   }
 
   const data = await response.json();
-  return data.choices?.[0]?.message?.content || '';
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 };
 
 /**

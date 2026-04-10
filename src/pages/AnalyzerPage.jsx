@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Footer from '../components/Footer';
 import { medicineDB, getAlternatives, getMedicineInfo, identifyMedicines } from '../services/medicineEngine';
+import { addHistoryEntry } from '../services/historyService';
 import Tesseract from 'tesseract.js';
 import './AnalyzerPage.css';
 
@@ -203,7 +204,22 @@ export default function AnalyzerPage() {
     ).join('\n---\n');
     setAnalyzerContext(ctxLines);
 
-    // Transition
+    // Log each detected medicine into localStorage history
+    for (const med of finalResults) {
+      const alts = med.alternatives || [];
+      const cheapest = alts.length ? Math.min(...alts.map(a => a.price)) : 0;
+      addHistoryEntry({
+        name: med.name,
+        dose: med.dose,
+        category: 'Prescription Analysis',
+        status: 'Verified',
+        savings: cheapest ? `₹${cheapest.toFixed(2)}` : '₹0.00',
+        alternatives: alts.length,
+      });
+    }
+
+    // Transition: fade out processing → slight delay → fade in results
+  
     setStage(STAGE.TRANSITION);
     transitionTimerRef.current = setTimeout(() => {
       setStage(STAGE.RESULTS);

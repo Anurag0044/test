@@ -1,20 +1,63 @@
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Footer from '../components/Footer'
+import { getHistory, getSearchCount } from '../services/historyService'
 import './DashboardPage.css'
-
-const recentChecks = [
-  { name: 'Amoxicillin Clavulanate', date: 'Oct 24, 2023', doctor: 'Dr. Richards', status: 'Verified', statusType: 'success' },
-  { name: 'Warfarin Sodium (Coumadin)', date: 'Oct 23, 2023', doctor: 'Dr. Chen', status: 'Review', statusType: 'info' },
-  { name: 'Metformin 500mg', date: 'Oct 23, 2023', doctor: 'Dr. Sarah Chen', status: 'Verified', statusType: 'success' },
-]
 
 const uploads = [
   { name: 'RX_Scan_4201.pdf', time: 'Uploaded 2 hours ago', status: 'Verified', icon: 'description' },
   { name: 'Lab_Report_Jan.pdf', time: 'Uploaded 1 day ago', status: 'Pending Analysis', icon: 'pending' },
 ]
 
+/* Friendly relative time */
+function timeAgo(timestamp) {
+  const seconds = Math.floor((Date.now() - timestamp) / 1000);
+  if (seconds < 60) return 'Just now';
+  const mins = Math.floor(seconds / 60);
+  if (mins < 60) return `${mins} min${mins > 1 ? 's' : ''} ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days > 1 ? 's' : ''} ago`;
+}
+
 export default function DashboardPage() {
   const navigate = useNavigate()
+  const [recentChecks, setRecentChecks] = useState([])
+  const [searchCount, setSearchCount] = useState(0)
+  const [totalSavings, setTotalSavings] = useState(0)
+
+  /* Load from localStorage & listen for updates */
+  const refreshData = () => {
+    const history = getHistory();
+    setRecentChecks(history.slice(0, 5)); // latest 5
+    setSearchCount(getSearchCount());
+
+    // Compute total savings from real records
+    const savings = history.reduce((sum, r) => {
+      const num = parseFloat((r.savings || '').replace(/[^\d.]/g, ''));
+      return sum + (isNaN(num) ? 0 : num);
+    }, 0);
+    setTotalSavings(savings);
+  };
+
+  useEffect(() => {
+    refreshData();
+
+    // Listen for changes from Analyzer or other tabs
+    const handleUpdate = () => refreshData();
+    window.addEventListener('medintel_history_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+
+    // Refresh relative timestamps every 30s
+    const tick = setInterval(refreshData, 30000);
+
+    return () => {
+      window.removeEventListener('medintel_history_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+      clearInterval(tick);
+    };
+  }, []);
 
   return (
     <div className="dashboard">
@@ -54,7 +97,7 @@ export default function DashboardPage() {
             <span className="material-icons-outlined">savings</span>
           </div>
           <div>
-            <span className="stat-value">$12,482</span>
+            <span className="stat-value">₹{totalSavings.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             <span className="stat-label body-md text-muted">Total Procurement Savings</span>
           </div>
         </div>
@@ -63,8 +106,8 @@ export default function DashboardPage() {
             <span className="material-icons-outlined">manage_search</span>
           </div>
           <div>
-            <span className="stat-value">1,240</span>
-            <span className="stat-label body-md text-muted">Recent Searches</span>
+            <span className="stat-value">{searchCount.toLocaleString()}</span>
+            <span className="stat-label body-md text-muted">Total Searches</span>
           </div>
         </div>
         <div className="stat-card card">
@@ -97,22 +140,32 @@ export default function DashboardPage() {
             </button>
           </div>
           <div className="checks-list">
-            {recentChecks.map((check, i) => (
-              <div key={i} className="check-item" style={{ animationDelay: `${i * 80}ms` }}>
-                <div className="check-item-info">
-                  <div className="check-item-icon">
-                    <span className="material-icons-outlined">medication</span>
-                  </div>
-                  <div>
-                    <h4 className="body-lg" style={{ fontWeight: 600 }}>{check.name}</h4>
-                    <p className="body-md text-muted">Check Date: {check.date} • {check.doctor}</p>
-                  </div>
-                </div>
-                <div className={`chip chip-${check.statusType}`}>
-                  {check.status}
-                </div>
+            {recentChecks.length === 0 ? (
+              <div className="empty-state">
+                <span className="material-icons-outlined empty-state-icon">science</span>
+                <p className="body-md text-muted">No analyses yet. Upload a prescription to get started!</p>
               </div>
-            ))}
+            ) : (
+              recentChecks.map((check) => (
+                <div key={check.id} className="check-item check-item-enter">
+                  <div className="check-item-info">
+                    <div className="check-item-icon">
+                      <span className="material-icons-outlined">medication</span>
+                    </div>
+                    <div>
+                      <h4 className="body-lg" style={{ fontWeight: 600 }}>{check.name}</h4>
+                      <p className="body-md text-muted">
+                        {timeAgo(check.timestamp)} • {check.dose}
+                        {check.alternatives > 0 && ` • ${check.alternatives} alternative${check.alternatives > 1 ? 's' : ''}`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className={`chip ${check.status === 'Verified' ? 'chip-success' : 'chip-info'}`}>
+                    {check.status}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
