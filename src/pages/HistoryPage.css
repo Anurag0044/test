@@ -57,7 +57,7 @@
 
 .history-table-header {
   display: grid;
-  grid-template-columns: 2.5fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: 2.5fr 1fr 1fr 1fr 1.2fr 48px;
   gap: var(--space-4);
   padding: var(--space-3) var(--space-4);
   font-size: 0.75rem;
@@ -69,7 +69,7 @@
 
 .history-table-row {
   display: grid;
-  grid-template-columns: 2.5fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: 2.5fr 1fr 1fr 1fr 1.2fr 48px;
   gap: var(--space-4);
   align-items: center;
   padding: var(--space-4);
@@ -110,8 +110,18 @@
   cursor: not-allowed;
 }
 
+/* ───── Empty State ───── */
+.history-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8) var(--space-5);
+  text-align: center;
+}
+
 @media (max-width: 900px) {
   .history { padding: var(--space-5); }
   .history-table-header,
-  .history-table-row { grid-template-columns: 1fr 1fr; }
+  .history-table-row { grid-template-columns: 1fr 1fr 48px; }
 }

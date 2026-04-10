@@ -183,7 +183,23 @@
   justify-content: space-between;
   align-items: center;
   padding: var(--space-4) 0;
-  animation: fadeIn 0.4s ease-out backwards;
+}
+
+@keyframes slideDownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-15px);
+    background-color: var(--surface-container-highest);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    background-color: transparent;
+  }
+}
+
+.check-item-enter {
+  animation: slideDownFade 0.5s ease-out forwards;
 }
 
 .check-item + .check-item {
@@ -272,6 +288,22 @@
 
 .pro-btn:hover {
   background: rgba(255, 255, 255, 0.3);
+}
+
+/* ───── Empty State ───── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8) var(--space-5);
+  text-align: center;
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  color: var(--outline);
+  margin-bottom: var(--space-3);
 }
 
 @media (max-width: 900px) {
