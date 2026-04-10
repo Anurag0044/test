@@ -151,7 +151,7 @@ export default function DashboardPage() {
                 </p>
               </div>
             </div>
-            <button className="btn btn-sm pro-btn">Upgrade Now</button>
+            <button className="btn btn-sm pro-btn" onClick={() => navigate('/app/upgrade')}>Upgrade Now</button>
           </div>
         </div>
       </div>

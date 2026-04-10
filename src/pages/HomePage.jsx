@@ -101,6 +101,7 @@ export default function HomePage() {
           <div className="home-nav-links">
             <a href="#features" className="home-nav-link">Features</a>
             <a href="#benchmarks" className="home-nav-link">About</a>
+            <button className="home-nav-link" style={{background:'none',border:'none',cursor:'pointer'}} onClick={() => navigate('/login')}>Pricing</button>
             <ThemeToggle />
             <button className="btn btn-outline btn-sm" onClick={() => navigate('/login')}>
               Sign In
@@ -196,8 +197,9 @@ export default function HomePage() {
               <span className="material-icons-outlined">search</span>
               Start Analyzing
             </button>
-            <button className="btn btn-outline btn-lg" onClick={() => navigate('#features')}>
-              Learn More
+            <button className="btn btn-outline btn-lg" onClick={() => navigate('/login')}>
+              <span className="material-icons-outlined">bolt</span>
+              View Pricing
             </button>
           </div>
           <div className="hero-stats">
@@ -362,13 +364,23 @@ export default function HomePage() {
           <p className="body-lg cta-desc">
             Join over 50,000 users who are saving an average of 40% on their monthly pharmacy bills.
           </p>
-          <button
-            className="btn btn-primary btn-lg btn-glow"
-            id="btn-get-started-cta"
-            onClick={(e) => handleBtnClick(e, '/login')}
-          >
-            Get Started — It's Free
-          </button>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button
+              className="btn btn-primary btn-lg btn-glow"
+              id="btn-get-started-cta"
+              onClick={(e) => handleBtnClick(e, '/login')}
+            >
+              Get Started — It's Free
+            </button>
+            <button
+              className="btn btn-outline btn-lg"
+              id="btn-view-pricing-cta"
+              onClick={(e) => handleBtnClick(e, '/login')}
+            >
+              <span className="material-icons-outlined">bolt</span>
+              View Plans
+            </button>
+          </div>
         </div>
       </section>
 

@@ -106,6 +106,17 @@ export default function Sidebar() {
             <span className="nav-label">{item.label}</span>
           </a>
         ))}
+        {/* ── Upgrade CTA ── */}
+        <button
+          className="sidebar-upgrade-btn"
+          onClick={() => navigate('/app/upgrade')}
+          id="sidebar-upgrade-btn"
+          title="Upgrade plan"
+        >
+          <span className="material-icons-outlined" style={{ fontSize: '16px' }}>bolt</span>
+          Upgrade to Pro
+        </button>
+
         <button
           className="nav-item nav-item-logout"
           onClick={(e) => { createNavRipple(e); setTimeout(() => navigate('/login'), 200) }}
@@ -117,6 +128,7 @@ export default function Sidebar() {
           </span>
           <span className="nav-label">Logout</span>
         </button>
+
 
         <div className="sidebar-user" onClick={() => navigate('/app/profile')} style={{ cursor: 'pointer' }} title="Go to Profile">
           <div className="sidebar-avatar">

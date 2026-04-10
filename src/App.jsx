@@ -9,6 +9,7 @@ import PharmacyPage from './pages/PharmacyPage'
 import HistoryPage from './pages/HistoryPage'
 import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
+import PricingPage from './pages/PricingPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import GlobalChatbot from './components/GlobalChatbot'
 
@@ -37,6 +38,7 @@ function App() {
           <Route path="history" element={<HistoryPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="upgrade" element={<PricingPage />} />
         </Route>
       </Routes>
       <GlobalChatbot />
