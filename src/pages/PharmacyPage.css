@@ -1,0 +1,124 @@
+.pharmacy {
+  padding: var(--space-7) var(--space-8);
+  max-width: 1100px;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.pharmacy-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: var(--space-6);
+}
+
+/* ───── Pharmacy List ───── */
+.pharmacy-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-height: calc(100vh - 220px);
+  overflow-y: auto;
+  padding-right: var(--space-2);
+}
+
+.pharmacy-card {
+  padding: var(--space-5);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  animation: fadeIn 0.4s ease-out backwards;
+}
+
+.pharmacy-card-active {
+  box-shadow: inset 0 0 0 2px var(--primary-container);
+}
+
+.pharmacy-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-2);
+}
+
+.pharmacy-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.pharmacy-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.pharmacy-status-open .pharmacy-status-dot { background-color: var(--primary-container); }
+.pharmacy-status-closing .pharmacy-status-dot { background-color: #e5a100; }
+.pharmacy-status-closed .pharmacy-status-dot { background-color: var(--error); }
+
+.pharmacy-status-open .label-sm { color: var(--primary); }
+.pharmacy-status-closing .label-sm { color: #e5a100; }
+.pharmacy-status-closed .label-sm { color: var(--error); }
+
+.pharmacy-card-meta {
+  display: flex;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+}
+
+.pharmacy-card-meta .body-md {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--outline);
+  font-size: 0.8125rem;
+}
+
+/* ───── Pharmacy Detail ───── */
+.pharmacy-detail {
+  padding: 0;
+  overflow: hidden;
+  position: sticky;
+  top: var(--space-7);
+}
+
+.pharmacy-map-placeholder {
+  height: 280px;
+  background:
+    linear-gradient(135deg, var(--surface-container) 0%, var(--surface-container-high) 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.pharmacy-map-icon {
+  font-size: 48px;
+  color: var(--outline-variant);
+}
+
+.pharmacy-detail-info {
+  padding: var(--space-6);
+}
+
+.pharmacy-detail-info .headline-sm {
+  margin-bottom: var(--space-2);
+}
+
+.pharmacy-detail-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.pharmacy-detail-actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+
+@media (max-width: 900px) {
+  .pharmacy { padding: var(--space-5); }
+  .pharmacy-layout { grid-template-columns: 1fr; }
+  .pharmacy-list { max-height: none; }
+}
