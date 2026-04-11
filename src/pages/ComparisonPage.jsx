@@ -38,7 +38,7 @@ export default function ComparisonPage() {
       })
       const ocrData = await ocrRes.json()
       const text = ocrData?.ParsedResults?.[0]?.ParsedText || ''
-      
+
       if (!text.trim()) {
         throw new Error('Could not read any text from image.')
       }
@@ -48,7 +48,7 @@ export default function ComparisonPage() {
         .replace(/[^a-zA-Z0-9\s]/g, ' ')
         .split(/\s+/)
         .filter(w => w.length >= 3)
-      
+
       if (words.length === 0) throw new Error('No medicine names identified in image.')
 
       // Try searching for the first few words until we find a match
@@ -161,17 +161,17 @@ export default function ComparisonPage() {
           onKeyDown={handleKeyDown}
           disabled={loading}
         />
-        
-        <input 
-          type="file" 
-          accept="image/*" 
-          ref={fileInputRef} 
-          style={{ display: 'none' }} 
-          onChange={handleImageSearch} 
+
+        <input
+          type="file"
+          accept="image/*"
+          ref={fileInputRef}
+          style={{ display: 'none' }}
+          onChange={handleImageSearch}
         />
-        
-        <button 
-          className="icon-btn-secondary" 
+
+        <button
+          className="icon-btn-secondary"
           onClick={() => fileInputRef.current?.click()}
           title="Analyze from Image"
           disabled={loading}

@@ -173,7 +173,7 @@ export default function HomePage() {
           <div className="home-nav-links">
             <a href="#features" className="home-nav-link">Features</a>
             <a href="#benchmarks" className="home-nav-link">About</a>
-            <button className="home-nav-link" style={{background:'none',border:'none',cursor:'pointer'}} onClick={() => navigate('/login')}>Pricing</button>
+            <button className="home-nav-link" style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => navigate('/login')}>Pricing</button>
             <ThemeToggle />
             <button className="btn btn-outline btn-sm" onClick={() => navigate('/login')}>
               Sign In
