@@ -7,6 +7,9 @@
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
+// ---- Helpers ----
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 // ---- System Prompt ----
 const SYSTEM_PROMPT = `You are a professional medical intelligence assistant for MedIntel, a clinical healthcare platform.
 
@@ -21,42 +24,112 @@ Rules:
 - Format responses as structured JSON when requested
 - Focus on evidence-based medical information only`;
 
-const callGemini = async (userMessage, systemOverride = null) => {
+// Models to try in order of preference
+const GEMINI_MODELS = [
+  'gemini-2.5-flash-lite',
+
+];
+
+/**
+ * Core Gemini API call with multi-turn conversation support.
+ *
+ * @param {string} userMessage - The latest user message
+ * @param {object} options
+ * @param {string|null}  options.systemOverride  - Custom system prompt
+ * @param {Array}        options.history         - Previous conversation turns [{role, text}]
+ * @param {boolean}      options.jsonMode        - Whether to request JSON output
+ * @returns {string} Raw text response from Gemini
+ */
+const callGemini = async (userMessage, { systemOverride = null, history = [], jsonMode = true } = {}) => {
   if (!API_KEY) {
-    throw new Error('Gemini API key not configured');
+    throw new Error(
+      'Gemini API key not configured. Set VITE_GEMINI_API_KEY in your .env file with a valid Google AI Studio key.'
+    );
   }
 
-  const GOOGLE_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
+  // Build multi-turn contents array from history + current message
+  const contents = [];
 
-  const response = await fetch(GOOGLE_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      systemInstruction: {
-        parts: [{ text: systemOverride || SYSTEM_PROMPT }]
-      },
-      contents: [{
-        role: 'user',
-        parts: [{ text: userMessage }]
-      }],
-      generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 2048,
-        responseMimeType: 'application/json',
-      }
-    }),
+  // Add conversation history for context
+  for (const turn of history) {
+    contents.push({
+      role: turn.role === 'user' ? 'user' : 'model',
+      parts: [{ text: turn.text }],
+    });
+  }
+
+  // Add the current user message
+  contents.push({
+    role: 'user',
+    parts: [{ text: userMessage }],
   });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    console.error('[Gemini API Error]', response.status, errorData);
-    throw new Error(`API request failed: ${response.status}`);
+  const requestBody = {
+    systemInstruction: {
+      parts: [{ text: systemOverride || SYSTEM_PROMPT }],
+    },
+    contents,
+    generationConfig: {
+      temperature: 0.4,
+      maxOutputTokens: 4096,
+      ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
+    },
+  };
+
+  // Try each model in order until one succeeds
+  const MAX_RETRIES = 3;
+  let lastError = null;
+
+  for (const model of GEMINI_MODELS) {
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+        });
+
+        // Rate-limited or server overloaded — wait and retry
+        if (response.status === 429 || response.status === 503 || response.status === 500) {
+          const backoff = Math.min(2000 * Math.pow(2, attempt - 1), 10000);
+          console.warn(`[Gemini] Model ${model} returned ${response.status}, retrying in ${backoff}ms (attempt ${attempt}/${MAX_RETRIES})`);
+          lastError = new Error(`API rate limited (${response.status}) on model ${model}`);
+          await delay(backoff);
+          continue; // retry same model
+        }
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.warn(`[Gemini] Model ${model} failed (${response.status}):`, errorData);
+          lastError = new Error(`API request failed with model ${model}: ${response.status}`);
+          break; // non-retryable error, try next model
+        }
+
+        const data = await response.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (!text) {
+          console.warn(`[Gemini] Model ${model} returned empty response`);
+          lastError = new Error('Empty response from Gemini');
+          break; // try next model
+        }
+
+        return text;
+      } catch (err) {
+        console.warn(`[Gemini] Model ${model} error (attempt ${attempt}):`, err.message);
+        lastError = err;
+        if (attempt < MAX_RETRIES) {
+          await delay(2000 * attempt);
+          continue; // retry on network errors
+        }
+        break; // exhausted retries, try next model
+      }
+    }
   }
 
-  const data = await response.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  throw lastError || new Error('All Gemini models failed');
 };
 
 /**
@@ -105,7 +178,7 @@ Return ONLY valid JSON (no markdown, no code fences) in this exact format:
   "category": "Drug category (e.g., Antibiotic, Analgesic, Antihypertensive, etc.)"
 }`;
 
-    const raw = await callGemini(prompt);
+    const raw = await callGemini(prompt, { jsonMode: true });
     const parsed = extractJSON(raw);
 
     return {
@@ -125,13 +198,15 @@ Return ONLY valid JSON (no markdown, no code fences) in this exact format:
 
 /**
  * Generate a full medical chat response with structured output.
- * Used by the chatbot.
+ * Used by the chatbot. Supports multi-turn conversation history
+ * for context-aware, real-time answers.
  *
  * @param {string} userMessage
  * @param {string} medicineContext - Context from analyzer results
+ * @param {Array}  conversationHistory - Previous chat turns [{role, text}]
  * @returns {{ summary, alternatives, costInsight, warning, disclaimer }}
  */
-export const generateMedicalResponse = async (userMessage, medicineContext = '') => {
+export const generateMedicalResponse = async (userMessage, medicineContext = '', conversationHistory = []) => {
   const safeReturn = {
     summary: 'I apologize, but I was unable to process your request at this time. Please try again.',
     alternatives: [],
@@ -158,7 +233,10 @@ Return ONLY valid JSON (no markdown, no code fences) in this exact format:
   "disclaimer": "This information is for educational purposes only. Consult a healthcare professional before making any medical decisions."
 }`;
 
-    const raw = await callGemini(prompt);
+    const raw = await callGemini(prompt, {
+      history: conversationHistory,
+      jsonMode: true,
+    });
     const parsed = extractJSON(raw);
 
     return {
@@ -205,7 +283,7 @@ Return ONLY valid JSON (no markdown, no code fences) in this exact format:
 If no medicines are found, return: { "medicines": [] }
 Important: rawName must be the lowercase, simplified version of the name (no salts, no dosage forms).`;
 
-    const raw = await callGemini(prompt);
+    const raw = await callGemini(prompt, { jsonMode: true });
     const parsed = extractJSON(raw);
 
     if (Array.isArray(parsed.medicines) && parsed.medicines.length > 0) {
