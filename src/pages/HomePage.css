@@ -888,6 +888,35 @@
 }
 
 /* ───── Responsive ───── */
+
+/* ── Tablet (≤1024px) ── */
+@media (max-width: 1024px) {
+  .hero {
+    padding: 140px var(--space-6) var(--space-10);
+  }
+
+  .hero-title {
+    font-size: 2.75rem;
+    min-height: 3.8em;
+  }
+
+  .demo-grid {
+    gap: var(--space-5);
+  }
+
+  .benchmarks-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-5);
+  }
+
+  .benchmarks-grid .benchmark-card:last-child {
+    grid-column: 1 / -1;
+    max-width: 50%;
+    margin: 0 auto;
+  }
+}
+
+/* ── Mobile (≤768px) ── */
 @media (max-width: 768px) {
   .home-nav {
     padding: var(--space-3) var(--space-5);
@@ -946,11 +975,99 @@
     grid-template-columns: 1fr;
   }
 
+  .benchmarks-grid .benchmark-card:last-child {
+    max-width: none;
+  }
+
   .hero-results-grid {
     grid-template-columns: 1fr;
   }
 
   .hero-results {
     padding: var(--space-4);
+  }
+
+  .hero-actions {
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .hero-actions .btn {
+    width: 100%;
+    max-width: 320px;
+  }
+
+  .demo-section,
+  .value-section,
+  .benchmarks-section,
+  .cta-section {
+    padding: var(--space-9) var(--space-5);
+  }
+
+  .section-header {
+    margin-bottom: var(--space-7);
+  }
+
+  .cta-title {
+    font-size: 1.5rem;
+  }
+}
+
+/* ── Small Mobile (≤480px) ── */
+@media (max-width: 480px) {
+  .home-nav {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .hero {
+    padding: 100px var(--space-4) var(--space-7);
+  }
+
+  .hero-title {
+    font-size: 1.75rem;
+    min-height: 4em;
+  }
+
+  .hero-description {
+    font-size: 0.9375rem;
+  }
+
+  .hero-badge {
+    font-size: 0.75rem;
+    padding: var(--space-1) var(--space-3);
+  }
+
+  .hero-search-btn {
+    padding: 6px 14px;
+    font-size: 0.8rem;
+  }
+
+  .hero-stat-value {
+    font-size: 1.25rem;
+  }
+
+  .demo-section,
+  .value-section,
+  .benchmarks-section,
+  .cta-section {
+    padding: var(--space-7) var(--space-4);
+  }
+
+  .benchmark-card,
+  .value-card {
+    padding: var(--space-5);
+  }
+
+  .hero-result-card {
+    padding: var(--space-3);
+  }
+
+  .hero-result-name {
+    font-size: 0.875rem;
+  }
+
+  .hero-result-price {
+    font-size: 0.95rem;
   }
 }

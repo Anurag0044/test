@@ -581,3 +581,139 @@ ul, ol {
   border-radius: var(--radius-full);
   transition: width var(--transition-slow);
 }
+
+/* ============================================================
+   RESPONSIVE FOUNDATIONS
+   Multi-platform · Touch-optimized · Safe Areas
+   ============================================================ */
+
+/* ---------- Touch Optimization ---------- */
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+/* Ensure all interactive elements have adequate touch targets */
+button, a, input, select, textarea, [role="button"] {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Exception: inline links and small elements that don't need full touch targets */
+a:not(.btn):not(.nav-item):not(.mobile-menu-link):not(.footer-link) {
+  min-height: unset;
+  min-width: unset;
+}
+
+.chip, .chip-success, .chip-error, .chip-info, .chip-neutral {
+  min-height: unset;
+  min-width: unset;
+}
+
+/* ---------- Safe Area Support ---------- */
+body {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* ---------- Responsive Typography (Fluid Scale) ---------- */
+@media (max-width: 768px) {
+  .display-lg {
+    font-size: clamp(2rem, 6vw, 3.5rem);
+  }
+
+  .headline-lg {
+    font-size: clamp(1.5rem, 4.5vw, 2.25rem);
+  }
+
+  .headline-md {
+    font-size: clamp(1.25rem, 3.5vw, 1.75rem);
+  }
+
+  .headline-sm {
+    font-size: clamp(1.125rem, 3vw, 1.5rem);
+  }
+
+  .title-lg {
+    font-size: clamp(1rem, 2.5vw, 1.25rem);
+  }
+
+  .body-lg {
+    font-size: clamp(0.875rem, 2vw, 1rem);
+  }
+}
+
+/* ---------- Responsive Button Adjustments ---------- */
+@media (max-width: 768px) {
+  .btn {
+    padding: var(--space-3) var(--space-5);
+    font-size: 0.875rem;
+  }
+
+  .btn-lg {
+    padding: var(--space-3) var(--space-6);
+    font-size: 0.9375rem;
+  }
+
+  .btn-sm {
+    padding: var(--space-2) var(--space-4);
+    font-size: 0.8125rem;
+  }
+}
+
+/* ---------- Responsive Card Adjustments ---------- */
+@media (max-width: 768px) {
+  .card {
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+  }
+}
+
+/* ---------- Responsive Input Adjustments ---------- */
+@media (max-width: 768px) {
+  .input-field {
+    font-size: 1rem; /* Prevent iOS zoom on focus */
+    padding: var(--space-3) var(--space-4);
+  }
+}
+
+/* ---------- Global Scrollbar on Mobile ---------- */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+}
+
+/* ---------- Reduced Motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------- Hover only on devices that support it ---------- */
+@media (hover: none) {
+  .card:hover {
+    box-shadow: none;
+  }
+
+  .btn-primary:hover,
+  .btn-secondary:hover,
+  .btn-outline:hover,
+  .btn-ghost:hover,
+  .btn-danger:hover {
+    transform: none;
+  }
+}
+
+/* ---------- Landscape phone ---------- */
+@media (max-height: 500px) and (orientation: landscape) {
+  body {
+    overflow-y: auto;
+  }
+}

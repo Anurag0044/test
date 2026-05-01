@@ -1,5 +1,6 @@
 /* ============================================================
    Sidebar — Premium SaaS Dashboard
+   Fully Responsive: Desktop → Tablet → Mobile
    ============================================================ */
 
 .sidebar {
@@ -16,7 +17,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   border-right: 1px solid rgba(255, 255, 255, 0.04);
-  transition: background 0.4s ease;
+  transition: background 0.4s ease, transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Subtle internal glow */
@@ -320,6 +321,106 @@
 }
 
 /* ============================================================
+   Mobile Top Bar — Only visible on mobile/tablet
+   ============================================================ */
+.sidebar-mobile-bar {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 99;
+  height: 56px;
+  padding: 0 var(--space-4);
+  background: linear-gradient(180deg, #4a5568, #3d4a5e);
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="dark"] .sidebar-mobile-bar {
+  background: linear-gradient(180deg, #0d1117, #0a0f14);
+}
+
+.sidebar-mobile-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.sidebar-mobile-brand .sidebar-logo-icon {
+  width: 32px;
+  height: 32px;
+  font-size: 1rem;
+}
+
+.sidebar-mobile-brand .sidebar-brand {
+  font-size: 1rem;
+}
+
+/* ── Hamburger button ── */
+.sidebar-hamburger {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 44px;
+  height: 44px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.sidebar-hamburger:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.sidebar-hamburger-line {
+  display: block;
+  width: 100%;
+  height: 2.5px;
+  background-color: white;
+  border-radius: var(--radius-full);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: center;
+}
+
+/* Animated X on open */
+.sidebar-hamburger-active .sidebar-hamburger-line:nth-child(1) {
+  transform: translateY(7.5px) rotate(45deg);
+}
+
+.sidebar-hamburger-active .sidebar-hamburger-line:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+.sidebar-hamburger-active .sidebar-hamburger-line:nth-child(3) {
+  transform: translateY(-7.5px) rotate(-45deg);
+}
+
+/* ── Overlay ── */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: sidebarFadeIn 0.25s ease;
+}
+
+@keyframes sidebarFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ============================================================
    Dark Mode
    ============================================================ */
 [data-theme="dark"] .sidebar {
@@ -424,4 +525,69 @@
 [data-theme="dark"] .sidebar-upgrade-btn:hover {
   box-shadow: 0 8px 24px rgba(78, 222, 163, 0.3),
               inset 0 1px 0 rgba(255,255,255,0.15);
+}
+
+/* ============================================================
+   RESPONSIVE — Tablet (≤1024px)
+   ============================================================ */
+@media (max-width: 1024px) {
+  .sidebar {
+    transform: translateX(-100%);
+    box-shadow: none;
+  }
+
+  .sidebar-mobile-open {
+    transform: translateX(0);
+    box-shadow: 8px 0 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .sidebar-mobile-bar {
+    display: flex;
+  }
+
+  .sidebar-overlay {
+    display: block;
+  }
+}
+
+/* ============================================================
+   RESPONSIVE — Mobile (≤480px)
+   ============================================================ */
+@media (max-width: 480px) {
+  .sidebar {
+    width: 280px;
+  }
+
+  .sidebar-mobile-bar {
+    height: 52px;
+    padding: 0 var(--space-3);
+  }
+
+  .sidebar-mobile-brand .sidebar-logo-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 0.875rem;
+  }
+
+  .sidebar-mobile-brand .sidebar-brand {
+    font-size: 0.9375rem;
+  }
+
+  .nav-item {
+    padding: var(--space-3) var(--space-3);
+    font-size: 0.9375rem;
+  }
+
+  .sidebar-upgrade-btn {
+    padding: 12px 16px;
+  }
+}
+
+/* ── Safe area for bottom of sidebar on notched phones ── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  @media (max-width: 1024px) {
+    .sidebar-bottom {
+      padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom));
+    }
+  }
 }

@@ -306,6 +306,15 @@
   margin-bottom: var(--space-3);
 }
 
+@media (max-width: 1024px) {
+  .dashboard {
+    padding: var(--space-6);
+  }
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 900px) {
   .dashboard {
     padding: var(--space-5);
@@ -317,6 +326,31 @@
     grid-template-columns: 1fr;
   }
   .page-header {
+    flex-direction: column;
+  }
+  .page-header-actions {
+    width: 100%;
+  }
+  .search-bar {
+    width: 100%;
+  }
+  .search-bar .input-field {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard {
+    padding: var(--space-4) var(--space-3);
+  }
+  .stat-card {
+    padding: var(--space-4);
+  }
+  .dashboard-card {
+    padding: var(--space-4);
+  }
+  .dashboard-tip {
+    padding: var(--space-3) var(--space-4);
     flex-direction: column;
   }
 }

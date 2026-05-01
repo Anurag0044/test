@@ -24,3 +24,23 @@
   transition: opacity 0.35s ease-out, transform 0.35s ease-out,
               background-color 0.4s ease;
 }
+
+/* ============================================================
+   RESPONSIVE — Tablet & Mobile (≤1024px)
+   When sidebar becomes a slide-out drawer, main content
+   takes full width with top-bar offset.
+   ============================================================ */
+@media (max-width: 1024px) {
+  .app-main {
+    margin-left: 0;
+    padding-top: 56px; /* Height of mobile top bar */
+    min-height: 100vh;
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-main {
+    padding-top: 52px; /* Slightly shorter bar on phones */
+  }
+}

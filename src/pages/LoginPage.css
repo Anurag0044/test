@@ -215,6 +215,35 @@
   .login-visual {
     display: none;
   }
+
+  .login-form-panel {
+    padding: var(--space-7);
+  }
+}
+
+@media (max-width: 480px) {
+  .login-form-panel {
+    padding: var(--space-5) var(--space-4);
+  }
+
+  .login-form-container {
+    max-width: none;
+  }
+
+  .login-form-header .headline-sm {
+    font-size: 1.25rem;
+  }
+
+  .login-footer-links {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: var(--space-3);
+    align-items: flex-start;
+  }
 }
 
 /* ───── Auth Alerts ───── */

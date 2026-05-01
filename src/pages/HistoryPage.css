@@ -123,5 +123,47 @@
 @media (max-width: 900px) {
   .history { padding: var(--space-5); }
   .history-table-header,
-  .history-table-row { grid-template-columns: 1fr 1fr 48px; }
+  .history-table-row { grid-template-columns: 2fr 1fr 1fr 48px; }
+  .savings-info {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .history { padding: var(--space-4) var(--space-3); }
+  .history-table-header { display: none; }
+  .history-table-row {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2);
+    padding: var(--space-3);
+  }
+  .savings-banner {
+    padding: var(--space-4);
+  }
+  .savings-value {
+    font-size: 1.5rem;
+  }
+  .savings-meta {
+    flex-wrap: wrap;
+  }
+  .history-pagination {
+    flex-direction: column;
+    gap: var(--space-3);
+    align-items: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .history { padding: var(--space-3) var(--space-2); }
+  .history-table-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+  }
+  .history-filters {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: var(--space-2);
+  }
 }

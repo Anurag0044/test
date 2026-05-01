@@ -324,3 +324,43 @@
     justify-content: flex-end;
   }
 }
+
+@media (max-width: 640px) {
+  .profile { padding: var(--space-4) var(--space-3); }
+  .profile-hero-content {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0 var(--space-4) var(--space-5);
+  }
+  .profile-hero-info {
+    padding-top: var(--space-4);
+  }
+  .profile-hero-actions {
+    justify-content: center;
+  }
+  .profile-edit-btn {
+    margin-left: 0;
+  }
+  .profile-details-card,
+  .profile-prescriptions-card {
+    padding: var(--space-4);
+  }
+}
+
+@media (max-width: 480px) {
+  .profile { padding: var(--space-3) var(--space-2); }
+  .profile-avatar-lg {
+    width: 64px;
+    height: 64px;
+  }
+  .profile-avatar-text {
+    font-size: 1.25rem;
+  }
+  .profile-edit-actions {
+    flex-direction: column;
+  }
+  .profile-edit-actions .btn {
+    width: 100%;
+  }
+}

@@ -93,3 +93,27 @@
   .settings { padding: var(--space-5); }
   .settings-danger-card { flex-direction: column; align-items: flex-start; }
 }
+
+@media (max-width: 640px) {
+  .settings { padding: var(--space-4) var(--space-3); }
+  .settings-item {
+    padding: var(--space-4);
+    gap: var(--space-3);
+  }
+}
+
+@media (max-width: 480px) {
+  .settings { padding: var(--space-3) var(--space-2); }
+  .settings-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+  .settings-danger-card {
+    padding: var(--space-4);
+    gap: var(--space-3);
+  }
+  .settings-danger-card .btn {
+    width: 100%;
+  }
+}

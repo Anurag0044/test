@@ -248,7 +248,6 @@
 }
 
 /* ── Plan Header ── */
-.plan-header {}
 .plan-icon-wrap {
   width: 46px; height: 46px;
   border-radius: 12px;
@@ -696,9 +695,70 @@
 }
 
 /* ── Responsive ── */
+@media (max-width: 900px) {
+  .plans-grid {
+    grid-template-columns: 1fr;
+    max-width: 420px;
+  }
+
+  .pricing-hero { padding: 56px 20px 40px; }
+
+  .billing-toggle-wrap {
+    margin-bottom: 40px;
+  }
+}
+
 @media (max-width: 640px) {
   .pricing-hero { padding: 48px 16px 32px; }
   .plans-grid { padding: 0 16px 60px; }
   .plan-card { padding: 24px 20px; }
   .trust-strip { gap: 16px; }
+
+  .payment-modal {
+    padding: 28px 20px;
+    border-radius: 20px;
+    margin: var(--space-3);
+  }
+
+  .faq-section {
+    margin: 32px auto 60px;
+    padding: 0 16px;
+  }
+
+  .faq-question-btn {
+    padding: 14px 16px;
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .pricing-hero-title {
+    font-size: 1.75rem;
+  }
+
+  .pricing-hero-subtitle {
+    font-size: 0.9375rem;
+  }
+
+  .plan-price-amount {
+    font-size: 2.5rem;
+  }
+
+  .plan-cta-btn {
+    padding: 12px 16px;
+  }
+
+  .billing-toggle-wrap {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .trust-item {
+    font-size: 0.75rem;
+  }
+
+  .payment-modal-overlay {
+    padding: 12px;
+  }
 }
